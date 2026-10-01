@@ -1,0 +1,161 @@
+import { memo, useState } from 'react';
+import type { PacketKind } from '../architectures/types';
+import type { StepVisual } from '../experience/types';
+import { PacketTravel } from '../experience/PacketTravel';
+import { useWorld } from '../architectures/state';
+import { useUniverse } from '../state/universe';
+import {
+  BaseEdge,
+  EdgeLabelRenderer,
+  getSmoothStepPath,
+  type EdgeProps,
+  type Edge,
+} from '@xyflow/react';
+import type { Relationship } from '../knowledge/types';
+export type FlowEdge = Edge<
+  {
+    relationship: Relationship;
+    active: boolean;
+    reverse: boolean;
+    dimmed: boolean;
+    showLabel: boolean;
+    reducedMotion: boolean;
+    visited?: boolean;
+    connected?: boolean;
+    boot?: boolean;
+    suppressed?: boolean;
+    playback?: {
+      key: string;
+      duration: number;
+      elapsed: number;
+      speed: number;
+      running: boolean;
+      kind: PacketKind;
+      startedAt?: number;
+      visual?: StepVisual;
+    };
+  },
+  'architecture'
+>;
+export const ArchitectureEdge = memo(function ArchitectureEdge(props: EdgeProps<FlowEdge>) {
+  const [hovered, setHovered] = useState(false);
+  const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected } =
+    props;
+  const [path, x, y] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    borderRadius: 14,
+    offset: 23,
+  });
+  const kind = data?.relationship.kind;
+  const dashed = [
+    'event',
+    'stream',
+    'publish',
+    'consume',
+    'replication',
+    'telemetry',
+    'CDC',
+    'backup',
+    'synchronization',
+    'contains',
+    'alternative',
+  ].includes(kind || '');
+  const structural = kind === 'contains' || kind === 'alternative';
+  const color = data?.active
+    ? '#b6a4fa'
+    : selected || hovered || data?.connected
+      ? '#c8b5ff'
+      : data?.visited
+        ? '#817195'
+        : structural
+          ? '#494351'
+          : kind === 'telemetry'
+            ? '#536166'
+            : dashed
+              ? '#665941'
+              : '#41454f';
+  return (
+    <g
+      className={`architecture-edge ${data?.active ? 'edge-active' : ''} ${data?.visited ? 'edge-visited' : ''} ${hovered ? 'edge-hovered' : ''} ${data?.boot ? 'edge-boot' : ''}`}
+      style={{ opacity: data?.dimmed && !data.visited && !hovered && !data.connected ? 0.16 : 1 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <BaseEdge
+        id={id}
+        path={path}
+        interactionWidth={18}
+        style={{
+          stroke: color,
+          strokeWidth: data?.active || selected ? 2 : 1.25,
+          strokeDasharray: structural ? '2 5' : dashed ? '4 5' : undefined,
+        }}
+        markerStart={data?.reverse ? props.markerEnd : undefined}
+        markerEnd={data?.reverse ? undefined : props.markerEnd}
+      />
+      {data?.active && !data.reducedMotion && data.playback && !data.suppressed && (
+        <PacketTravel
+          key={data.playback.key}
+          path={path}
+          reverse={data.reverse}
+          clock={{
+            ...data.playback,
+            startedAt: data.playback.startedAt || performance.now(),
+            reduced: false,
+          }}
+          visual={
+            data.playback.visual || {
+              packet: 'request',
+              payload: data.relationship.label,
+              arrival: 'process',
+              caption: 'REQUEST',
+              phase: 'REQUEST',
+              latencyMs: 12,
+            }
+          }
+          onInspect={() => {
+            useWorld.getState().pause();
+            useUniverse.getState().set({ running: false });
+            useWorld.getState().set({
+              packetInspection: {
+                edge: id,
+                label: data.playback?.visual?.payload || data.relationship.label,
+                kind: data.playback?.visual?.packet || 'request',
+              },
+            });
+            useUniverse.getState().inspectEdge(id);
+          }}
+        />
+      )}
+      {data?.active && !data.reducedMotion && !data.playback && (
+        <circle r="3.5" fill="#dbceff" className="request-packet">
+          <animateMotion
+            dur="1.1s"
+            repeatCount="indefinite"
+            path={path}
+            keyPoints={data.reverse ? '1;0' : '0;1'}
+            keyTimes="0;1"
+            calcMode="linear"
+          />
+        </circle>
+      )}
+      {(data?.showLabel || selected || data?.active || hovered) && (
+        <EdgeLabelRenderer>
+          <span
+            className={`edge-label ${data?.active ? 'active' : ''}`}
+            style={{ transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}
+          >
+            {hovered && !data?.active
+              ? `${data?.relationship.kind} · ${data?.relationship.label}`
+              : data?.relationship.label}
+          </span>
+        </EdgeLabelRenderer>
+      )}
+    </g>
+  );
+});
