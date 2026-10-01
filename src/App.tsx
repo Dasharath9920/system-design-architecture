@@ -64,6 +64,11 @@ import { storyLayout } from './experience/storyLayout';
 import './experience/experience.css';
 import { useFlowCamera } from './experience/useFlowCamera';
 import { legacyVisual } from './experience/legacy';
+import { ChallengeSelector } from './challenges/ChallengeSelector';
+import { ChallengePanel } from './challenges/ChallengePanel';
+import { challengeActions } from './challenges/actions';
+import { challenges } from './challenges/data';
+import { useChallenge } from './challenges/state';
 
 const ArchitectureExplorer = lazy(() =>
   import('./architectures/components/ArchitectureExplorer').then((m) => ({
@@ -98,6 +103,8 @@ export function App() {
   const state = useUniverse();
   const world = useWorld();
   const experience = useExperience();
+  const challengeState = useChallenge();
+  const activeChallenge = challenges.find((item) => item.id === challengeState.challengeId);
   const {
     depthId,
     selectedId,
@@ -136,8 +143,20 @@ export function App() {
   const scenarioNodes = useMemo(() => new Set(worldFrames.flatMap((f) => f.nodes)), [worldFrames]);
   useEffect(() => {
     restoreWorldRoute();
+    const resumeChallenge = window.setTimeout(() => {
+      try {
+        const saved = sessionStorage.getItem('sdu-challenge-active-difficulty');
+        if (saved === 'easy' || saved === 'medium' || saved === 'hard')
+          void useChallenge.getState().chooseDifficulty(saved);
+      } catch {
+        /* optional */
+      }
+    }, 0);
     window.addEventListener('popstate', restoreWorldRoute);
-    return () => window.removeEventListener('popstate', restoreWorldRoute);
+    return () => {
+      window.clearTimeout(resumeChallenge);
+      window.removeEventListener('popstate', restoreWorldRoute);
+    };
   }, []);
   const flow = useReactFlow<FlowNode, FlowEdge>();
   const detailZoom = useStore((s) =>
@@ -369,6 +388,16 @@ export function App() {
             ((id === 'rw-service' && world.sandbox.failedServer) ||
               (id === 'rw-recipient' && world.debug === 'offline') ||
               (id === 'rw-events' && world.sandbox.consumersPaused)),
+          challengeSignal: activeChallenge?.symptoms.some((symptom) => symptom.nodeId === id)
+            ? challengeState.evaluation
+              ? `${challengeState.evaluation.metrics[0]?.label} ${challengeState.evaluation.metrics[0]?.value}`
+              : activeChallenge.symptoms.find((symptom) => symptom.nodeId === id)?.label
+            : undefined,
+          challengeModified: activeChallenge
+            ? challengeState.appliedActions
+                .map((actionId) => challengeActions[actionId])
+                .find((action) => action?.nodeIds.includes(id))?.label
+            : undefined,
           arrival: worldActive && !!worldFrame?.steps.some((s) => s.to === id),
           paused: experience.cameraMoving || (worldActive ? !world.running : !state.running),
           showDetails: detailZoom > 0.48,
@@ -412,6 +441,8 @@ export function App() {
       world.insights,
       world.running,
       experience.cameraMoving,
+      activeChallenge,
+      challengeState.appliedActions,
       worldFrame,
       scenarioNodes,
       step,
@@ -741,9 +772,11 @@ export function App() {
   const ancestors = depthId ? [...getAncestors(depthId), depthId] : [];
   return (
     <main
-      className={`universe-app ${selectedId || selectedEdge ? 'has-inspector' : ''} ${step >= 0 ? 'is-visualizing' : ''} ${worldArchitecture ? 'world-mode' : ''} ${worldFrame?.parallel ? 'world-parallel' : ''} ${experience.cinema ? 'cinema-mode' : ''} ${experience.explain ? '' : 'explain-off'} ${reduced || (worldActive && world.speed === 0) ? 'motion-reduced' : ''} ${experience.motion === 'off' ? 'motion-off' : ''} ${boot ? 'system-boot' : ''} ${world.completed ? 'flow-completed' : ''} family-${worldArchitecture?.familyId || 'universe'}`}
+      className={`universe-app ${selectedId || selectedEdge ? 'has-inspector' : ''} ${step >= 0 ? 'is-visualizing' : ''} ${worldArchitecture ? 'world-mode' : ''} ${worldFrame?.parallel ? 'world-parallel' : ''} ${experience.cinema ? 'cinema-mode' : ''} ${experience.explain ? '' : 'explain-off'} ${reduced || (worldActive && world.speed === 0) ? 'motion-reduced' : ''} ${experience.motion === 'off' ? 'motion-off' : ''} ${boot ? 'system-boot' : ''} ${world.completed ? 'flow-completed' : ''} ${activeChallenge ? 'challenge-mode' : ''} family-${worldArchitecture?.familyId || 'universe'}`}
     >
       <Header />
+      <ChallengeSelector />
+      <ChallengePanel />
       <ExitCinema />
       {boot && <BootCaption />}
       {worldArchitecture ? (

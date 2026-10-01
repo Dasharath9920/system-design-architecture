@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { ChevronDown, Command, GitBranch, HelpCircle, Search, X } from 'lucide-react';
+import { BrainCircuit, ChevronDown, Command, GitBranch, HelpCircle, Search, X } from 'lucide-react';
 import { presets } from '../scenarios/presets';
 import { useUniverse } from '../state/universe';
 import { UniverseLogo } from './Icon';
 import { useWorld } from '../architectures/state';
+import { useChallenge } from '../challenges/state';
 
 export function Header() {
   const { presetId, set } = useUniverse();
   const world = useWorld();
+  const challenge = useChallenge();
   const menu = world.explorerOpen;
   const [help, setHelp] = useState(false);
   const preset = presets.find((p) => p.id === presetId) || presets[0];
@@ -20,7 +22,8 @@ export function Header() {
           aria-label="System Design Universe home"
           onClick={(e) => {
             e.preventDefault();
-            world.leave();
+            if (challenge.challengeId) challenge.exit();
+            else world.leave();
           }}
         >
           <span className="brand-mark">
@@ -37,6 +40,14 @@ export function Header() {
           <span className="explorer-tag">
             <span className="live-dot" /> INTERACTIVE EXPLORER
           </span>
+          <button
+            className={`challenges-trigger ${challenge.challengeId ? 'active' : ''}`}
+            aria-label="Challenges"
+            onClick={challenge.openSelector}
+          >
+            <BrainCircuit size={14} />
+            <span>Challenges</span>
+          </button>
           <button
             className="search-trigger"
             aria-label="Find anything"
