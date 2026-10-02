@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
-import { ArrowUpRight, ChevronRight, Minus, Plus, TriangleAlert } from 'lucide-react';
+import { ChevronRight, Minus, Plus, TriangleAlert } from 'lucide-react';
 import type { Concept } from '../knowledge/types';
 import { Icon } from '../components/Icon';
 import { useUniverse } from '../state/universe';
@@ -99,11 +99,7 @@ export const ArchitectureNode = memo(function ArchitectureNode({
             <i />
             <span>{backlog}</span>
           </span>
-        ) : (
-          <span className="node-kind">
-            {concept.kind === 'infrastructure' ? 'infra' : concept.kind}
-          </span>
-        )}
+        ) : null}
         {failed && <TriangleAlert size={13} className="failed-icon" />}
       </div>
       <div className="node-name">{concept.name}</div>
@@ -163,11 +159,9 @@ export const ArchitectureNode = memo(function ArchitectureNode({
               explore(data.worldConceptId || (expanded ? concept.parent || null : concept.id));
             }}
           >
-            {expanded ? <Minus size={10} /> : <Plus size={10} />} {concept.children.length}
+            {expanded ? <Minus size={11} /> : <Plus size={11} />}
           </button>
-        ) : (
-          <ArrowUpRight size={12} className="node-leaf" />
-        )}
+        ) : null}
       </div>
       {data.insight && <span className="world-node-insight">{data.insight}</span>}
       {data.comparison === 'different' && (

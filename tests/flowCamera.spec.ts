@@ -1,4 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
+async function openFlowOptions(page: Page) {
+  const options = page.getByRole('dialog', { name: 'Flow options' });
+  if (!(await options.isVisible()))
+    await page.getByRole('button', { name: 'Flow options', exact: true }).click();
+  return options;
+}
+
 async function viewport(page: Page) {
   return page.locator('.react-flow__viewport').evaluate((el) => {
     const m = new DOMMatrixReadOnly(getComputedStyle(el).transform);
@@ -76,12 +83,14 @@ test('manual pan disables follow across steps and Auto Follow off preserves manu
   await page.mouse.move(pane.x + 140, pane.y + 95, { steps: 8 });
   await page.mouse.up();
   const manual = await viewport(page);
-  await expect(page.locator('.world-step-heading')).toContainText('STEP 2');
+  await expect(page.locator('.world-step-count')).toContainText('2 /');
   expect(await viewport(page)).toEqual(manual);
   await page.getByRole('button', { name: 'Pause flow', exact: true }).click();
-  await page.getByRole('button', { name: 'Auto follow flow', exact: true }).click();
+  const options = await openFlowOptions(page);
+  await options.getByRole('button', { name: 'Auto follow flow', exact: true }).click();
+  await options.getByRole('button', { name: 'Close flow options' }).click();
   await page.getByRole('button', { name: 'Resume flow', exact: true }).click();
-  await expect(page.locator('.world-step-heading')).toContainText('STEP 3');
+  await expect(page.locator('.world-step-count')).toContainText('3 /');
   expect(await viewport(page)).toEqual(manual);
 });
 
@@ -89,9 +98,8 @@ test('parallel camera frames all destinations and adapts to a smaller viewport',
   page,
 }) => {
   await page.goto('/architecture/search/google/search-query');
-  await page.getByRole('combobox', { name: 'Playback speed' }).selectOption('2');
   await page.getByRole('button', { name: 'Play flow', exact: true }).click();
-  await expect(page.locator('.world-step-heading')).toContainText('PARALLEL', { timeout: 15000 });
+  await expect(page.locator('.world-step-count')).toContainText('Parallel', { timeout: 15000 });
   await expect(page.locator('.world-packet')).toHaveCount(2);
   await framed(page, ['rw-service', 'rw-shard-a', 'rw-shard-b']);
   await page.setViewportSize({ width: 700, height: 900 });
@@ -105,7 +113,9 @@ test('natural completion holds the final view then returns to the captured overv
   await expect(page.getByTestId('concept-rw-client')).toBeVisible();
   await settle(page);
   const original = await viewport(page);
-  await page.getByRole('combobox', { name: 'Playback speed' }).selectOption('0');
+  const options = await openFlowOptions(page);
+  await options.getByRole('combobox', { name: 'Playback speed' }).selectOption('0');
+  await options.getByRole('button', { name: 'Close flow options' }).click();
   await page.getByRole('button', { name: 'Play flow', exact: true }).click();
   await expect(page.locator('.world-completion')).toBeVisible();
   const final = await viewport(page);
@@ -145,7 +155,8 @@ test('switching scenarios restores the overview without a stale camera callback'
   const original = await viewport(page);
   await page.getByRole('button', { name: 'Play flow', exact: true }).click();
   await expect(page.locator('.world-packet')).toHaveCount(1);
-  await page.getByRole('combobox', { name: 'Choose flow' }).selectOption('group-message');
+  const options = await openFlowOptions(page);
+  await options.getByRole('combobox', { name: 'Choose flow' }).selectOption('group-message');
   await expect
     .poll(async () => {
       const v = await viewport(page);
@@ -173,7 +184,7 @@ test('resume leaves the paused frame alone and re-enables following at the next 
   const paused = await viewport(page);
   await page.getByRole('button', { name: 'Resume flow', exact: true }).click();
   expect(await viewport(page)).toEqual(paused);
-  await expect(page.locator('.world-step-heading')).toContainText('STEP 2');
+  await expect(page.locator('.world-step-count')).toContainText('2 /');
   await expect(page.locator('.world-packet')).toHaveCount(1);
   await framed(page, ['rw-connection', 'rw-service']);
 });
@@ -185,10 +196,10 @@ test('classic reset restores the overview and resuming its last step finishes wi
   await expect(page.getByTestId('concept-client')).toBeVisible();
   await settle(page);
   const original = await viewport(page);
-  await page.getByRole('button', { name: 'Visualize request', exact: true }).click();
+  await page.getByRole('button', { name: 'Play flow', exact: true }).click();
   await expect(page.locator('.request-packet')).toHaveCount(1);
   await page.getByRole('button', { name: 'Pause flow', exact: true }).click();
-  await page.getByRole('button', { name: 'Restart visualization', exact: true }).click();
+  await page.getByRole('button', { name: 'Close visualization', exact: true }).click();
   await expect(page.locator('.simulation-story')).toHaveCount(0);
   await expect
     .poll(async () => {
@@ -198,15 +209,11 @@ test('classic reset restores the overview and resuming its last step finishes wi
       );
     })
     .toBeLessThan(0.1);
-  await page.getByRole('button', { name: 'Visualize request', exact: true }).click();
+  await page.getByRole('button', { name: 'Play flow', exact: true }).click();
   await page.getByRole('button', { name: 'Pause flow', exact: true }).click();
-  const last = page.locator('.story-progress button[aria-label^="Go to step"]').last();
-  const label = await last.getAttribute('aria-label');
-  await last.click();
-  await page.getByRole('button', { name: 'Visualize request', exact: true }).click();
-  await expect(page.locator('.story-progress button.current')).toHaveAttribute(
-    'aria-label',
-    label!,
-  );
+  const next = page.getByRole('button', { name: 'Next simulation step', exact: true });
+  for (let index = 0; index < 20 && (await next.isEnabled()); index++) await next.click();
+  await page.getByRole('button', { name: 'Play flow', exact: true }).click();
   await expect(page.locator('.simulation-story')).toHaveCount(0);
+  await expect(page.locator('.request-packet, .architecture-node.is-active')).toHaveCount(0);
 });

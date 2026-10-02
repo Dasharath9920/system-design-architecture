@@ -1,5 +1,25 @@
 import { test, expect } from '@playwright/test';
 
+async function openFlowOptions(page: import('@playwright/test').Page) {
+  const options = page.getByRole('dialog', { name: 'Flow options' });
+  if (!(await options.isVisible()))
+    await page.getByRole('button', { name: 'Flow options', exact: true }).click();
+  return options;
+}
+
+async function setInstant(page: import('@playwright/test').Page) {
+  const options = await openFlowOptions(page);
+  await options.getByRole('combobox', { name: 'Playback speed' }).selectOption('0');
+  await options.getByRole('button', { name: 'Close flow options' }).click();
+}
+
+async function openMore(page: import('@playwright/test').Page) {
+  const menu = page.getByRole('menu', { name: 'More options' });
+  if (!(await menu.isVisible()))
+    await page.getByRole('button', { name: 'More options' }).click();
+  return menu;
+}
+
 const showcases = [
   ['social/instagram/home-feed', 'rw-client', 'feed'],
   ['chat/discord/send-message', 'rw-client', 'delivered'],
@@ -19,7 +39,7 @@ for (const [route, client, result] of showcases) {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(`/architecture/${route}`);
-    await page.getByRole('combobox', { name: 'Playback speed' }).selectOption('0');
+    await setInstant(page);
     await page.getByRole('button', { name: 'Play flow', exact: true }).click();
     await expect(page.locator('.world-completion')).toBeVisible();
     await expect(page.getByTestId(`concept-${client}`).locator('.client-preview')).toHaveAttribute(
@@ -33,7 +53,8 @@ for (const [route, client, result] of showcases) {
     ).toHaveCount(0);
     await expect.poll(() => page.locator('.edge-visited').count()).toBeGreaterThan(0);
     await page.screenshot({ path: `tests/showcase-${route.split('/')[0]}.png` });
-    await page.getByRole('button', { name: 'Restart flow', exact: true }).click();
+    await openFlowOptions(page);
+    await page.getByRole('button', { name: 'Reset flow' }).click();
     await expect(page.locator('.world-completion, .edge-visited')).toHaveCount(0);
     await expect(page.getByTestId(`concept-${client}`).locator('.client-preview')).toHaveAttribute(
       'data-preview-state',
@@ -55,16 +76,19 @@ test('cinematic start, packet inspection, backward scrub, cinema escape, and tra
   await page.locator('.world-packet').press('Enter');
   await expect(page.getByRole('complementary')).toContainText('Hello');
   await page.getByRole('button', { name: 'Close inspector' }).click();
+  await openFlowOptions(page);
   await page.getByRole('slider', { name: 'Scrub flow' }).fill('10000');
   await page.getByRole('slider', { name: 'Scrub flow' }).fill('0');
   await expect(page.getByTestId('concept-rw-client').locator('.client-preview')).toHaveAttribute(
     'data-preview-state',
     'sending',
   );
-  await page.getByRole('button', { name: 'Cinema mode', exact: true }).click();
+  await openMore(page);
+  await page.getByRole('menuitem', { name: 'Cinema mode', exact: true }).click();
   await expect(page.locator('.universe-app')).toHaveClass(/cinema-mode/);
   await page.keyboard.press('Escape');
   await expect(page.locator('.universe-app')).not.toHaveClass(/cinema-mode/);
+  await openMore(page);
   await page.getByRole('combobox', { name: 'Architecture lens' }).selectOption('observability');
   await expect(
     page.getByRole('complementary', { name: 'Simulated distributed trace' }),
@@ -77,6 +101,7 @@ test('explicit motion off preserves learning and disables packet and node animat
   page,
 }) => {
   await page.goto('/architecture/video/netflix/playback');
+  await openMore(page);
   await page.getByRole('combobox', { name: 'Motion preference' }).selectOption('off');
   await page.getByRole('button', { name: 'Play flow', exact: true }).click();
   await expect(page.locator('.architecture-node.is-active')).toHaveCount(2);
@@ -92,6 +117,7 @@ test('explicit motion off preserves learning and disables packet and node animat
       ),
   ).toBe(0);
   await page.reload();
+  await openMore(page);
   await expect(page.getByRole('combobox', { name: 'Motion preference' })).toHaveValue('off');
 });
 
@@ -104,12 +130,10 @@ test('queue sandbox retains a burst while consumers pause and resumes after addi
   await expect(page.getByTestId('concept-rw-events')).toContainText('14 PENDING');
   await page.getByRole('button', { name: 'Pause consumers', exact: true }).click();
   await page.getByRole('button', { name: 'Close inspector' }).click();
-  await page.getByRole('combobox', { name: 'Playback speed' }).selectOption('0');
+  await setInstant(page);
   await page.getByRole('button', { name: 'Play flow', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Resume flow', exact: true })).toContainText(
-    'Consumer paused',
-  );
-  await expect(page.locator('.world-step-heading')).toContainText('STEP 4');
+  await expect(page.getByRole('button', { name: 'Resume flow', exact: true })).toBeVisible();
+  await expect(page.locator('.world-step-count')).toContainText('4 /');
   await expect(page.locator('.request-packet')).toHaveCount(0);
   await page.getByRole('button', { name: 'Resume flow', exact: true }).click();
   await page.getByRole('button', { name: 'Add consumer (1)', exact: true }).click();

@@ -4,6 +4,8 @@ import { ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { App } from './App';
 import './styles.css';
+import './light.css';
+import './dark.css';
 
 class ErrorBoundary extends React.Component<React.PropsWithChildren, { failed: boolean }> {
   state = { failed: false };

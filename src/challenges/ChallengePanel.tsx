@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Check, ChevronRight, Lightbulb, Play, RotateCcw, Shuffle, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Check, ChevronRight, Ellipsis, Lightbulb, Play, RotateCcw, Shuffle, X } from 'lucide-react';
 import { useWorld } from '../architectures/state';
 import { challengeActions } from './actions';
 import { challenges } from './data';
@@ -8,6 +8,7 @@ import { useChallenge } from './state';
 export function ChallengePanel() {
   const state = useChallenge();
   const world = useWorld();
+  const [moreOpen, setMoreOpen] = useState(false);
   const challenge = challenges.find((item) => item.id === state.challengeId);
   useEffect(() => {
     if (world.completed) state.completeRun();
@@ -30,24 +31,21 @@ export function ChallengePanel() {
       </header>
       <h2>{challenge.title}</h2>
       <p>{challenge.description}</p>
-      <small className="challenge-context">{challenge.context}</small>
-      <div className="challenge-metrics" aria-label="Simulated workload metrics">
-        {metrics.map((item, index) => (
-          <span className={item.tone} key={item.label}>
-            <small>{item.label}</small>
-            {state.evaluation ? (
+      {state.evaluation && (
+        <div className="challenge-metrics" aria-label="Simulated workload metrics">
+          {metrics.map((item, index) => (
+            <span className={item.tone} key={item.label}>
+              <small>{item.label}</small>
               <span className="challenge-metric-comparison">
                 <s>{challenge.before[index]?.value}</s>
                 <ChevronRight size={10} />
                 <strong>{item.value}</strong>
               </span>
-            ) : (
-              <strong>{item.value}</strong>
-            )}
-            <i>SIMULATED</i>
-          </span>
-        ))}
-      </div>
+              <i>SIMULATED</i>
+            </span>
+          ))}
+        </div>
+      )}
       {state.evaluation && (
         <div className={`challenge-result ${state.evaluation.status}`}>
           <strong>
@@ -112,14 +110,25 @@ export function ChallengePanel() {
         <button disabled={busy} onClick={() => void state.next()}>
           <Shuffle size={11} /> Try another
         </button>
-        <button disabled={busy} onClick={state.reset}>
-          <RotateCcw size={11} /> Reset
+        <button
+          aria-label="More challenge options"
+          aria-expanded={moreOpen}
+          onClick={() => setMoreOpen((open) => !open)}
+        >
+          <Ellipsis size={14} />
         </button>
-        <button disabled={busy || state.solutionShown} onClick={state.revealSolution}>
-          Show solution
-        </button>
-        <button onClick={state.openSelector}>Change difficulty</button>
       </div>
+      {moreOpen && (
+        <div className="challenge-more-actions">
+          <button disabled={busy} onClick={state.reset}>
+            <RotateCcw size={11} /> Reset challenge
+          </button>
+          <button disabled={busy || state.solutionShown} onClick={state.revealSolution}>
+            Show solution
+          </button>
+          <button onClick={state.openSelector}>Change difficulty</button>
+        </div>
+      )}
       {state.solutionShown && (
         <p className="challenge-solution">
           <b>WHY IT WORKS</b>

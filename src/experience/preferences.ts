@@ -1,5 +1,18 @@
 import { create } from 'zustand';
 export type MotionPreference = 'system' | 'full' | 'reduced' | 'off';
+export type ThemePreference = 'light' | 'dark';
+
+function savedTheme(): ThemePreference {
+  try {
+    return localStorage.getItem('sdu-theme') === 'dark' ? 'dark' : 'light';
+  } catch {
+    return 'light';
+  }
+}
+
+const initialTheme = savedTheme();
+if (typeof document !== 'undefined') document.documentElement.dataset.theme = initialTheme;
+
 function savedMotion(): MotionPreference {
   try {
     const value = localStorage.getItem('sdu-motion');
@@ -11,6 +24,7 @@ function savedMotion(): MotionPreference {
   }
 }
 export const useExperience = create<{
+  theme: ThemePreference;
   motion: MotionPreference;
   cinema: boolean;
   explain: boolean;
@@ -18,6 +32,7 @@ export const useExperience = create<{
   autoFollow: boolean;
   cameraMoving: boolean;
   hovered: string | null;
+  setTheme: (theme: ThemePreference) => void;
   setMotion: (motion: MotionPreference) => void;
   set: (
     value: Partial<{
@@ -30,6 +45,7 @@ export const useExperience = create<{
     }>,
   ) => void;
 }>((set) => ({
+  theme: initialTheme,
   motion: savedMotion(),
   cinema: false,
   explain: true,
@@ -38,6 +54,15 @@ export const useExperience = create<{
   cameraMoving: false,
   hovered: null,
   set,
+  setTheme: (theme) => {
+    set({ theme });
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem('sdu-theme', theme);
+    } catch {
+      /* Private browsing still supports in-session preferences. */
+    }
+  },
   setMotion: (motion) => {
     set({ motion });
     try {

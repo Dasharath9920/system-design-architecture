@@ -1,18 +1,42 @@
 import { useState } from 'react';
-import { BrainCircuit, ChevronDown, Command, GitBranch, HelpCircle, Search, X } from 'lucide-react';
+import {
+  ChevronDown,
+  Command,
+  Ellipsis,
+  Expand,
+  HelpCircle,
+  Moon,
+  Search,
+  ScanLine,
+  Sun,
+  X,
+} from 'lucide-react';
+import { getFamily } from '../architectures/registry';
+import { useWorld } from '../architectures/state';
+import type { Lens } from '../architectures/types';
+import { useChallenge } from '../challenges/state';
+import { useExperience, type MotionPreference } from '../experience/preferences';
 import { presets } from '../scenarios/presets';
 import { useUniverse } from '../state/universe';
 import { UniverseLogo } from './Icon';
-import { useWorld } from '../architectures/state';
-import { useChallenge } from '../challenges/state';
 
 export function Header() {
-  const { presetId, set } = useUniverse();
+  const universe = useUniverse();
   const world = useWorld();
   const challenge = useChallenge();
-  const menu = world.explorerOpen;
-  const [help, setHelp] = useState(false);
-  const preset = presets.find((p) => p.id === presetId) || presets[0];
+  const experience = useExperience();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const preset = presets.find((item) => item.id === universe.presetId) || presets[0];
+  const family = world.architecture ? getFamily(world.architecture.familyId) : null;
+  const architectureName = world.architecture
+    ? `${family?.name || world.architecture.familyId} · ${world.architecture.company}`
+    : preset?.name || 'Production system';
+  const explore = () => {
+    if (challenge.challengeId) challenge.exit();
+    else world.leave();
+  };
+
   return (
     <>
       <header className="app-header">
@@ -20,131 +44,207 @@ export function Header() {
           className="brand"
           href="#"
           aria-label="System Design Universe home"
-          onClick={(e) => {
-            e.preventDefault();
-            if (challenge.challengeId) challenge.exit();
-            else world.leave();
+          onClick={(event) => {
+            event.preventDefault();
+            explore();
           }}
         >
           <span className="brand-mark">
             <UniverseLogo />
           </span>
-          <span>
-            <strong>
-              SYSTEM DESIGN <span>UNIVERSE</span>
-            </strong>
-            <small>Explore how everything connects.</small>
-          </span>
+          <strong>
+            System Design <span>Universe</span>
+          </strong>
         </a>
-        <div className="header-actions">
-          <span className="explorer-tag">
-            <span className="live-dot" /> INTERACTIVE EXPLORER
-          </span>
+        <nav className="primary-nav" aria-label="Primary navigation">
+          <button className={!challenge.challengeId ? 'active' : ''} onClick={explore}>
+            Explore
+          </button>
           <button
-            className={`challenges-trigger ${challenge.challengeId ? 'active' : ''}`}
+            className={challenge.challengeId ? 'active' : ''}
             aria-label="Challenges"
             onClick={challenge.openSelector}
           >
-            <BrainCircuit size={14} />
-            <span>Challenges</span>
+            Challenges
           </button>
+        </nav>
+        <div className="header-actions">
           <button
             className="search-trigger"
             aria-label="Find anything"
-            onClick={() => set({ searchOpen: true })}
+            onClick={() => universe.set({ searchOpen: true })}
           >
             <Search size={15} />
-            <span>Find anything</span>
+            <span>Search concepts, systems…</span>
             <kbd>
               <Command size={10} /> K
             </kbd>
           </button>
-          <div className="preset-wrap">
-            <button
-              className={`preset-trigger ${menu ? 'active' : ''}`}
-              aria-label="Choose architecture preset"
-              onClick={() => world.set({ explorerOpen: !menu })}
-              aria-expanded={menu}
-            >
-              <GitBranch size={15} />
-              <span>{world.architecture?.company || preset?.name || 'Production system'}</span>
-              <ChevronDown size={13} />
-            </button>
-          </div>
           <button
-            className="icon-button help-trigger"
-            aria-label="Open keyboard shortcuts"
-            onClick={() => setHelp(!help)}
+            className={`preset-trigger ${world.explorerOpen ? 'active' : ''}`}
+            aria-label="Choose architecture preset"
+            onClick={() => world.set({ explorerOpen: !world.explorerOpen })}
+            aria-expanded={world.explorerOpen}
           >
-            <HelpCircle size={18} />
+            <span>{architectureName}</span>
+            <ChevronDown size={13} />
+          </button>
+          <button
+            className="icon-button theme-toggle"
+            aria-label={`Switch to ${experience.theme === 'light' ? 'dark' : 'light'} theme`}
+            title={`Use ${experience.theme === 'light' ? 'dark' : 'light'} theme`}
+            onClick={() => experience.setTheme(experience.theme === 'light' ? 'dark' : 'light')}
+          >
+            {experience.theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
+          <button
+            className="icon-button more-trigger"
+            aria-label="More options"
+            aria-expanded={moreOpen}
+            onClick={() => setMoreOpen((open) => !open)}
+          >
+            <Ellipsis size={19} />
           </button>
         </div>
       </header>
-      {help && (
+      {moreOpen && (
+        <div className="nav-more-menu" role="menu" aria-label="More options">
+          {world.architecture && (
+            <>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  world.pause();
+                  world.set({ sourcesOpen: true });
+                  setMoreOpen(false);
+                }}
+              >
+                Sources
+              </button>
+              <label>
+                <span>View</span>
+                <select
+                  aria-label="Architecture lens"
+                  value={world.lens}
+                  onChange={(event) => {
+                    world.set({ lens: event.target.value as Lens });
+                    setMoreOpen(false);
+                  }}
+                >
+                  <option value="architecture">Architecture</option>
+                  <option value="flow">Flow path</option>
+                  <option value="data">Data</option>
+                  <option value="reliability">Reliability</option>
+                  <option value="infrastructure">Infrastructure</option>
+                  <option value="observability">Observability</option>
+                </select>
+              </label>
+              {family && (
+                <label>
+                  <span>Compare</span>
+                  <select
+                    aria-label="Compare architecture"
+                    value={world.compare?.id || ''}
+                    onChange={(event) => {
+                      void world.setCompare(event.target.value);
+                      setMoreOpen(false);
+                    }}
+                  >
+                    <option value="">Off</option>
+                    {[
+                      { id: 'generic', name: 'Generic Pattern', available: true },
+                      ...family.companies,
+                    ]
+                      .filter((item) => item.available && item.id !== world.architecture?.id)
+                      .map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              )}
+              <button
+                role="menuitem"
+                onClick={() => {
+                  experience.set({ trace: !experience.trace });
+                  setMoreOpen(false);
+                }}
+              >
+                <ScanLine size={14} /> View trace
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  experience.set({ cinema: !experience.cinema });
+                  setMoreOpen(false);
+                }}
+              >
+                <Expand size={14} /> Cinema mode
+              </button>
+            </>
+          )}
+          <label>
+            <span>Motion</span>
+            <select
+              aria-label="Motion preference"
+              value={experience.motion}
+              onChange={(event) => {
+                experience.setMotion(event.target.value as MotionPreference);
+                setMoreOpen(false);
+              }}
+            >
+              <option value="system">System</option>
+              <option value="full">Full</option>
+              <option value="reduced">Reduced</option>
+              <option value="off">Off</option>
+            </select>
+          </label>
+          <button
+            role="menuitem"
+            onClick={() => {
+              setHelpOpen(true);
+              setMoreOpen(false);
+            }}
+          >
+            <HelpCircle size={14} /> Keyboard shortcuts
+          </button>
+        </div>
+      )}
+      {helpOpen && (
         <div className="help-panel">
           <div className="popover-heading">
-            MAKE YOURSELF AT HOME
+            Keyboard shortcuts
             <button
               className="icon-button"
               aria-label="Close keyboard shortcuts"
-              onClick={() => setHelp(false)}
+              onClick={() => setHelpOpen(false)}
             >
               <X size={14} />
             </button>
           </div>
-          <p>Follow connections. Open a component. Go deeper.</p>
           <dl>
             <div>
-              <dt>Explore the canvas</dt>
-              <dd>Drag</dd>
-            </div>
-            <div>
-              <dt>Zoom in and out</dt>
-              <dd>Scroll / pinch</dd>
-            </div>
-            <div>
-              <dt>Inspect a component</dt>
-              <dd>Click</dd>
-            </div>
-            <div>
-              <dt>Explore its architecture</dt>
-              <dd>Double-click / +</dd>
-            </div>
-            <div>
-              <dt>Search the universe</dt>
-              <dd>
-                <kbd>⌘ / Ctrl</kbd> <kbd>K</kbd>
-              </dd>
+              <dt>Search</dt>
+              <dd>⌘ / Ctrl K</dd>
             </div>
             <div>
               <dt>Fit architecture</dt>
-              <dd>
-                <kbd>F</kbd>
-              </dd>
+              <dd>F</dd>
             </div>
             <div>
-              <dt>Go up one level</dt>
-              <dd>
-                <kbd>Esc</kbd>
-              </dd>
+              <dt>Play or pause</dt>
+              <dd>Space</dd>
             </div>
             <div>
-              <dt>Pan with keyboard</dt>
-              <dd>
-                <kbd>Arrow keys</kbd>
-              </dd>
+              <dt>Pan canvas</dt>
+              <dd>Arrow keys</dd>
             </div>
             <div>
-              <dt>Play / pause request</dt>
-              <dd>
-                <kbd>Space</kbd>
-              </dd>
+              <dt>Go back</dt>
+              <dd>Esc</dd>
             </div>
           </dl>
-          <p className="help-note">
-            This is one possible production architecture. Components and capacity depend on your
-            workload.
-          </p>
         </div>
       )}
     </>

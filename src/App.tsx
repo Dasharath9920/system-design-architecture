@@ -1,29 +1,22 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Background,
   BackgroundVariant,
   MarkerType,
-  MiniMap,
   ReactFlow,
-  ViewportPortal,
   useReactFlow,
-  useViewport,
   useStore,
 } from '@xyflow/react';
 import {
-  ArrowLeft,
   ArrowUpRight,
   Check,
   ChevronRight,
-  Compass,
   Crosshair,
   Home,
-  Layers3,
   Maximize,
   Minus,
   Plus,
   RotateCcw,
-  SlidersHorizontal,
   X,
 } from 'lucide-react';
 import { concepts, getAncestors, relationships, rootIds } from './knowledge/catalog';
@@ -53,12 +46,7 @@ import { useMorphNodes } from './architectures/useMorphNodes';
 import { useExperience } from './experience/preferences';
 import { presentationAt } from './experience/presentation';
 import type { NodeStory } from './experience/types';
-import {
-  useBoot,
-  BootCaption,
-  ExperienceControls,
-  ExitCinema,
-} from './experience/ExperienceControls';
+import { ExitCinema } from './experience/ExperienceControls';
 import { TracePanel } from './experience/TracePanel';
 import { storyLayout } from './experience/storyLayout';
 import './experience/experience.css';
@@ -84,21 +72,6 @@ const Inspector = lazy(() =>
 const SearchPalette = lazy(() =>
   import('./components/SearchPalette').then((module) => ({ default: module.SearchPalette })),
 );
-const domainColors: Record<string, string> = {
-  client: '#829bd4',
-  network: '#76b6b3',
-  security: '#d3ab6b',
-  compute: '#aa94e2',
-  data: '#79b8a2',
-  events: '#cf9c76',
-  operations: '#929dac',
-};
-
-function ZoomReadout() {
-  const { zoom } = useViewport();
-  return <span>{Math.round(zoom * 100)}%</span>;
-}
-
 export function App() {
   const state = useUniverse();
   const world = useWorld();
@@ -163,7 +136,6 @@ export function App() {
     s.transform[2] > 1.05 ? 1.1 : s.transform[2] > 0.48 ? 1 : 0.4,
   );
   const reduced = useReducedMotion();
-  const boot = useBoot(!worldArchitecture && !depthId && universeStep < 0);
   const presentation = useMemo(
     () => presentationAt(worldFrames, world.starting ? -1 : world.step, world.completed),
     [worldFrames, world.step, world.completed, world.starting],
@@ -203,9 +175,6 @@ export function App() {
     reduced,
     blocked,
   ]);
-  const [layersOpen, setLayersOpen] = useState(false);
-  const [hint, setHint] = useState(true);
-  const [showMap, setShowMap] = useState(true);
   const graphRef = useRef<HTMLDivElement>(null);
   const lastDepthChange = useRef(0);
   const previousZoom = useRef(1);
@@ -375,7 +344,6 @@ export function App() {
           story: worldActive ? stories[id] : legacyStories[id],
           visited: worldActive && presentation.visitedNodes.has(id),
           zoom: detailZoom,
-          bootDelay: boot ? (graphConcepts[id].stage || 0) * 120 : undefined,
           queue: Math.max(
             0,
             world.sandbox.burst +
@@ -388,11 +356,13 @@ export function App() {
             ((id === 'rw-service' && world.sandbox.failedServer) ||
               (id === 'rw-recipient' && world.debug === 'offline') ||
               (id === 'rw-events' && world.sandbox.consumersPaused)),
-          challengeSignal: activeChallenge?.symptoms.some((symptom) => symptom.nodeId === id)
-            ? challengeState.evaluation
-              ? `${challengeState.evaluation.metrics[0]?.label} ${challengeState.evaluation.metrics[0]?.value}`
-              : activeChallenge.symptoms.find((symptom) => symptom.nodeId === id)?.label
-            : undefined,
+          challengeSignal:
+            challengeState.phase !== 'briefing' &&
+            activeChallenge?.symptoms.some((symptom) => symptom.nodeId === id)
+              ? challengeState.evaluation
+                ? `${challengeState.evaluation.metrics[0]?.label} ${challengeState.evaluation.metrics[0]?.value}`
+                : activeChallenge.symptoms.find((symptom) => symptom.nodeId === id)?.label
+              : undefined,
           challengeModified: activeChallenge
             ? challengeState.appliedActions
                 .map((actionId) => challengeActions[actionId])
@@ -452,7 +422,6 @@ export function App() {
       world.sandbox,
       presentation,
       stories,
-      boot,
       legacyStories,
       state.running,
       experience.cameraMoving,
@@ -499,22 +468,17 @@ export function App() {
             type: MarkerType.ArrowClosed,
             width: 11,
             height: 11,
-            color: active ? '#b6a4fa' : '#51545e',
+            color: active
+              ? experience.theme === 'dark'
+                ? '#bca4f6'
+                : '#7654c2'
+              : experience.theme === 'dark'
+                ? '#4b4e59'
+                : '#c8cbd2',
           },
           data: {
             visited: worldActive && presentation.visitedEdges.has(r.id),
             connected: experience.hovered === r.source || experience.hovered === r.target,
-            boot:
-              boot &&
-              [
-                'client-cdn',
-                'cdn-waf',
-                'waf-load-balancer',
-                'load-balancer-api-gateway',
-                'api-gateway-services',
-                'services-cache',
-                'services-database',
-              ].includes(r.id),
             suppressed: experience.cameraMoving || (worldActive && (world.starting || blocked)),
             relationship:
               worldActive && active && worldFrame
@@ -588,7 +552,6 @@ export function App() {
       graphConcepts,
       presentation,
       experience.hovered,
-      boot,
       world.starting,
       world.startedAt,
       blocked,
@@ -622,7 +585,7 @@ export function App() {
     return flow.fitView({
       nodes: ids.map((id) => ({ id })),
       padding: 0.13,
-      minZoom: 0.2,
+      minZoom: window.innerWidth <= 650 ? 0.3 : 0.2,
       maxZoom: 1.08,
       duration: reduced ? 0 : 550,
     });
@@ -636,10 +599,6 @@ export function App() {
     const timer = setTimeout(frameArchitecture, 80);
     return () => clearTimeout(timer);
   }, [depthId, presetId, frameArchitecture]);
-  useEffect(() => {
-    const timer = setTimeout(() => setHint(false), 16000);
-    return () => clearTimeout(timer);
-  }, []);
   useEffect(() => {
     if (!focused || !selectedId || flowCamera.ownsViewport()) return;
     void flow.fitView({
@@ -702,7 +661,6 @@ export function App() {
         else if (selectedId || selectedEdge)
           set({ selectedId: null, selectedEdge: null, focused: false });
         else if (depth) explore(depth.parent || null);
-        setLayersOpen(false);
       }
       if (event.key.toLowerCase() === 'f' && !event.metaKey) {
         event.preventDefault();
@@ -772,88 +730,38 @@ export function App() {
   const ancestors = depthId ? [...getAncestors(depthId), depthId] : [];
   return (
     <main
-      className={`universe-app ${selectedId || selectedEdge ? 'has-inspector' : ''} ${step >= 0 ? 'is-visualizing' : ''} ${worldArchitecture ? 'world-mode' : ''} ${worldFrame?.parallel ? 'world-parallel' : ''} ${experience.cinema ? 'cinema-mode' : ''} ${experience.explain ? '' : 'explain-off'} ${reduced || (worldActive && world.speed === 0) ? 'motion-reduced' : ''} ${experience.motion === 'off' ? 'motion-off' : ''} ${boot ? 'system-boot' : ''} ${world.completed ? 'flow-completed' : ''} ${activeChallenge ? 'challenge-mode' : ''} family-${worldArchitecture?.familyId || 'universe'}`}
+      className={`universe-app theme-${experience.theme} ${selectedId || selectedEdge ? 'has-inspector' : ''} ${step >= 0 ? 'is-visualizing' : ''} ${worldArchitecture ? 'world-mode' : ''} ${worldFrame?.parallel ? 'world-parallel' : ''} ${experience.cinema ? 'cinema-mode' : ''} ${experience.explain ? '' : 'explain-off'} ${reduced || (worldActive && world.speed === 0) ? 'motion-reduced' : ''} ${experience.motion === 'off' ? 'motion-off' : ''} ${world.completed ? 'flow-completed' : ''} ${activeChallenge ? 'challenge-mode' : ''} family-${worldArchitecture?.familyId || 'universe'}`}
     >
       <Header />
       <ChallengeSelector />
       <ChallengePanel />
       <ExitCinema />
-      {boot && <BootCaption />}
       {worldArchitecture ? (
         <WorldContext />
-      ) : (
+      ) : depth ? (
         <div className="canvas-heading">
           <div className="breadcrumb">
             <button onClick={() => explore(null)}>
               <Home size={12} /> Universe
             </button>
             <ChevronRight size={12} />
-            {ancestors.length ? (
-              ancestors.map((id, i) => (
-                <span key={id}>
-                  <button
-                    className={i === ancestors.length - 1 ? 'current' : ''}
-                    onClick={() => explore(id)}
-                  >
-                    {concepts[id]?.name}
-                  </button>
-                  {i < ancestors.length - 1 && <ChevronRight size={11} />}
-                </span>
-              ))
-            ) : (
-              <span className="current">{preset?.name}</span>
-            )}
+            {ancestors.length
+              ? ancestors.map((id, i) => (
+                  <span key={id}>
+                    <button
+                      className={i === ancestors.length - 1 ? 'current' : ''}
+                      onClick={() => explore(id)}
+                    >
+                      {concepts[id]?.name}
+                    </button>
+                    {i < ancestors.length - 1 && <ChevronRight size={11} />}
+                  </span>
+                ))
+              : null}
           </div>
-          <div className="heading-line">
-            <h1>{depth ? `Inside ${depth.name}` : 'One system. A world of connections.'}</h1>
-            <span className="overview-pill">
-              <span />
-              {depth ? 'DEEP DIVE' : 'SYSTEM OVERVIEW'}
-            </span>
-          </div>
-          <p>
-            {depth
-              ? `Explore ${depth.children.length} concepts and the decisions behind them.`
-              : 'From the first click to the last byte. Explore the architecture behind it all.'}
-          </p>
+          <h1>Inside {depth.name}</h1>
         </div>
-      )}
-      <div className="canvas-top-actions">
-        {depth && (
-          <button className="subtle-button" onClick={navigateUp}>
-            <ArrowLeft size={14} /> Back one level
-          </button>
-        )}
-        <button
-          className={`subtle-button ${layersOpen ? 'active' : ''}`}
-          onClick={() => setLayersOpen(!layersOpen)}
-        >
-          <SlidersHorizontal size={14} /> View options
-        </button>
-      </div>
-      {layersOpen && (
-        <div className="layers-menu">
-          <div className="popover-heading">CANVAS LAYERS</div>
-          <button onClick={() => set({ showTelemetry: !showTelemetry })}>
-            <span>
-              <span className="layer-swatch telemetry" />
-              Telemetry connections
-            </span>
-            <span className={`toggle ${showTelemetry ? 'on' : ''}`} />
-          </button>
-          <button onClick={() => setShowMap(!showMap)}>
-            <span>
-              <Layers3 size={14} />
-              Architecture minimap
-            </span>
-            <span className={`toggle ${showMap ? 'on' : ''}`} />
-          </button>
-          <div className="layers-footnote">
-            Telemetry is hidden by default to keep the request path clear.
-          </div>
-          {!worldActive && <ExperienceControls />}
-        </div>
-      )}
+      ) : null}
       <div
         className="canvas-container"
         ref={graphRef}
@@ -867,9 +775,13 @@ export function App() {
           edgeTypes={edgeTypes}
           minZoom={0.08}
           maxZoom={2.2}
-          colorMode="dark"
+          colorMode={experience.theme}
           fitView
-          fitViewOptions={{ padding: 0.13, maxZoom: 1.08 }}
+          fitViewOptions={{
+            padding: 0.13,
+            minZoom: window.innerWidth <= 650 ? 0.3 : 0.2,
+            maxZoom: 1.08,
+          }}
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable
@@ -915,76 +827,13 @@ export function App() {
           onlyRenderVisibleElements={ids.length > 80}
           aria-label="Interactive system architecture canvas"
         >
-          <Background variant={BackgroundVariant.Dots} color="#31333e" gap={24} size={0.75} />
-          <ViewportPortal>
-            <div className="graph-bands">
-              {layout.bands.map((band) => (
-                <div
-                  key={band.id}
-                  className={`graph-band band-${band.id}`}
-                  style={{ left: band.x, top: band.y, width: band.width, height: band.height }}
-                >
-                  <span className="band-label">
-                    <i style={{ background: domainColors[band.domain] }} />
-                    {worldActive && band.id !== 'operations'
-                      ? {
-                          '01 CLIENT': '01 CLIENTS',
-                          '02 EDGE & NETWORK': '02 ENTRY & DELIVERY',
-                          '03 TRAFFIC & ACCESS': '03 COORDINATION',
-                          '04 APPLICATION': '04 STATE & COMPUTE',
-                          '05 DATA & EVENTS': '05 DATA & EVENTS',
-                          '06 DELIVERY': '06 DOWNSTREAM',
-                        }[band.label] || band.label
-                      : band.label}
-                  </span>
-                  {band.id === 'operations' && (
-                    <span className="operations-caption">
-                      CROSS-CUTTING · SUPPORTS THE ENTIRE SYSTEM
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </ViewportPortal>
-          {showMap && !experience.cinema && (
-            <MiniMap
-              pannable
-              zoomable
-              aria-label="Architecture minimap"
-              nodeColor={(n) =>
-                domainColors[(n.data as { concept: { domain: string } }).concept.domain] || '#777'
-              }
-              nodeStrokeWidth={0}
-              nodeBorderRadius={3}
-              maskColor="rgba(10,12,17,.64)"
-              maskStrokeColor="#797389"
-              maskStrokeWidth={1}
-            />
-          )}
+          <Background
+            variant={BackgroundVariant.Dots}
+            color={experience.theme === 'dark' ? '#292b34' : '#d7d9e0'}
+            gap={26}
+            size={0.65}
+          />
         </ReactFlow>
-      </div>
-      <div className="canvas-bottom-left">
-        <div className="connection-legend">
-          <span>
-            <i />
-            Request
-          </span>
-          <span>
-            <i className="async" />
-            Async / events
-          </span>
-          <button
-            className={showTelemetry ? 'active' : ''}
-            onClick={() => set({ showTelemetry: !showTelemetry })}
-          >
-            <i className="telemetry" />
-            Telemetry
-          </button>
-        </div>
-        <div className="canvas-status">
-          <span className="live-dot" />
-          {ids.length} components <span>·</span> {Object.keys(concepts).length} concepts to discover
-        </div>
       </div>
       <div className="canvas-tools">
         <button
@@ -999,7 +848,6 @@ export function App() {
         >
           <Minus size={16} />
         </button>
-        <ZoomReadout />
         <button
           className="icon-button"
           aria-label="Zoom in"
@@ -1010,7 +858,6 @@ export function App() {
         >
           <Plus size={16} />
         </button>
-        <i />
         <button
           className="icon-button"
           aria-label="Fit architecture"
@@ -1035,17 +882,6 @@ export function App() {
           <RotateCcw size={14} />
         </button>
       </div>
-      {hint && !worldArchitecture && !selectedId && step < 0 && (
-        <div className="first-run-hint">
-          <Compass size={13} />
-          <span>
-            Scroll to zoom <b>·</b> Drag to explore <b>·</b> Click any component
-          </span>
-          <button aria-label="Dismiss canvas hint" onClick={() => setHint(false)}>
-            <X size={11} />
-          </button>
-        </div>
-      )}
       {focused && (
         <button className="focus-indicator" onClick={() => set({ focused: false })}>
           <Crosshair size={13} /> Focus mode <X size={12} />
@@ -1099,9 +935,6 @@ export function App() {
           </button>
         </div>
       )}
-      <div className="version-mark">
-        BUILT FOR CURIOSITY <span>✦</span>
-      </div>
     </main>
   );
 }

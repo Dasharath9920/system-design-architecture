@@ -1,0 +1,1170 @@
+:root {
+  color: #25262b;
+  background: #f6f7f9;
+  color-scheme: light;
+  --panel: #ffffff;
+  --line: #e5e6ea;
+  --muted: #71737c;
+  --violet: #7654c2;
+  --accent: #7654c2;
+}
+
+body {
+  background: #f6f7f9;
+}
+
+button:hover {
+  color: #4f348f;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #8a69ce;
+  outline-offset: 3px;
+}
+
+kbd {
+  border-color: #e1e2e7;
+  color: #777983;
+  background: #f3f3f6;
+}
+
+.universe-app {
+  min-height: 520px;
+  background: #f6f7f9;
+}
+
+.app-header {
+  height: 64px;
+  padding: 0 28px;
+  border-bottom: 1px solid #e7e8ec;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: none;
+}
+
+.brand {
+  min-width: 0;
+  gap: 10px;
+  color: #202127;
+}
+
+.brand-mark {
+  width: 28px;
+  color: #7654c2;
+}
+
+.brand-mark svg {
+  width: 28px;
+  height: 28px;
+}
+
+.brand strong {
+  display: block;
+  font-size: 12px;
+  letter-spacing: -0.05px;
+  text-transform: none;
+  font-weight: 650;
+}
+
+.brand strong span {
+  color: #7458ad;
+}
+
+.primary-nav {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 34px;
+  margin-right: auto;
+}
+
+.primary-nav button {
+  padding: 8px 11px;
+  border-radius: 8px;
+  color: #73757d;
+  font-size: 11px;
+  font-weight: 550;
+}
+
+.primary-nav button:hover,
+.primary-nav button.active {
+  color: #332744;
+  background: #f3f0f8;
+}
+
+.header-actions {
+  gap: 8px;
+}
+
+.search-trigger,
+.preset-trigger {
+  height: 36px;
+  border: 1px solid #e1e2e7;
+  border-radius: 9px;
+  background: #fafafd;
+  color: #676a74;
+  box-shadow: none;
+}
+
+.search-trigger {
+  min-width: 230px;
+}
+
+.search-trigger kbd {
+  margin-left: auto;
+}
+
+.preset-trigger {
+  max-width: 235px;
+  padding: 0 11px 0 13px;
+}
+
+.preset-trigger span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-trigger:hover,
+.preset-trigger:hover,
+.preset-trigger.active {
+  color: #3e3150;
+  border-color: #bcaed3;
+  background: #fff;
+}
+
+.icon-button,
+.more-trigger,
+.help-trigger {
+  color: #737681;
+}
+
+.icon-button:hover,
+.more-trigger:hover {
+  color: #4f348f;
+  background: #f2eff7;
+}
+
+.theme-toggle {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #e1e2e7;
+  border-radius: 9px;
+  background: #fafafd;
+}
+
+.nav-more-menu,
+.help-panel,
+.layers-menu,
+.control-popover,
+.flow-options,
+.preset-menu {
+  border: 1px solid #e1e2e7;
+  background: #fff;
+  box-shadow: 0 16px 42px rgba(37, 30, 50, 0.12);
+  border-radius: 12px;
+}
+
+.nav-more-menu {
+  position: absolute;
+  z-index: 42;
+  top: 55px;
+  right: 27px;
+  width: 238px;
+  padding: 7px;
+}
+
+.nav-more-menu > button,
+.nav-more-menu > label {
+  display: flex;
+  width: 100%;
+  min-height: 36px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 7px;
+  color: #555861;
+  font-size: 10px;
+  text-align: left;
+}
+
+.nav-more-menu > button {
+  justify-content: flex-start;
+}
+
+.nav-more-menu > button:hover {
+  background: #f6f3fa;
+}
+
+.nav-more-menu select,
+.flow-options select {
+  min-width: 112px;
+  max-width: 140px;
+  border: 1px solid #e1e2e7;
+  border-radius: 6px;
+  padding: 5px 6px;
+  color: #44464d;
+  background: #fafafd;
+  font: inherit;
+}
+
+.help-panel {
+  top: 55px;
+  right: 27px;
+  color: #4a4d55;
+}
+
+.help-panel dl > div {
+  border-color: #ededef;
+}
+
+.help-panel dd,
+.popover-heading {
+  color: #777a83;
+}
+
+.canvas-container,
+.world-mode .canvas-container,
+.is-visualizing .canvas-container,
+.world-mode.is-visualizing .canvas-container,
+.world-mode.world-parallel.is-visualizing .canvas-container {
+  inset: 92px 4.5vw 28px;
+  overflow: hidden;
+  border: 1px solid #e2e3e7;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(24, 25, 29, 0.03);
+  transition: border-color 0.2s ease;
+}
+
+.react-flow {
+  --xy-background-color: #ffffff;
+  --xy-edge-stroke: #d1d4db;
+  --xy-node-border-radius: 11px;
+}
+
+.react-flow__node:focus-visible {
+  outline-color: #7654c2;
+}
+
+.canvas-heading {
+  top: 107px;
+  left: calc(4.5vw + 20px);
+}
+
+.canvas-heading h1 {
+  color: #2c2d33;
+  font-size: 15px;
+  letter-spacing: -0.25px;
+}
+
+.breadcrumb {
+  margin-bottom: 7px;
+  color: #888b94;
+}
+
+.breadcrumb button,
+.breadcrumb .current {
+  color: #6f727b;
+}
+
+.world-deep-context {
+  top: 108px;
+  left: calc(4.5vw + 20px);
+  right: auto;
+  z-index: 9;
+}
+
+.world-deep-context button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 9px;
+  border: 1px solid #e3e4e8;
+  border-radius: 8px;
+  color: #676a72;
+  background: #fff;
+  font-size: 10px;
+}
+
+.architecture-node {
+  width: 188px;
+  height: 104px;
+  padding: 13px 14px 10px;
+  border: 1px solid #d7d9df;
+  border-radius: 12px;
+  color: #292a30;
+  background-color: #eef0f3;
+  background-image: linear-gradient(145deg, #f3f4f6, #edeff2);
+  box-shadow: 0 3px 10px rgba(31, 32, 37, 0.075);
+}
+
+.architecture-node:hover {
+  border-color: color-mix(in srgb, var(--accent) 60%, #dfe0e5);
+  box-shadow: 0 7px 18px rgba(35, 28, 48, 0.09);
+}
+
+.architecture-node.is-selected {
+  border-color: #8d70c5;
+  background-color: #eeeaf4;
+  background-image: linear-gradient(145deg, #f3f0f8, #ece8f3);
+  box-shadow: 0 0 0 3px rgba(118, 84, 194, 0.09);
+}
+
+.architecture-node.is-active {
+  border-color: #7654c2;
+  background-color: #ece6f5;
+  background-image: linear-gradient(145deg, #f2edf9, #e9e3f3);
+  box-shadow: 0 8px 24px rgba(91, 57, 151, 0.13);
+}
+
+.architecture-node.is-failed,
+.architecture-node.node-unavailable {
+  border-color: #c9857f;
+  background: #fff9f8;
+}
+
+.architecture-node.is-dimmed,
+.world-node.is-dimmed {
+  opacity: 0.42;
+}
+
+.node-top {
+  margin-bottom: 7px;
+}
+
+.node-icon {
+  color: var(--accent);
+}
+
+.node-name {
+  color: #292a30;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.node-bottom {
+  margin-top: 7px;
+}
+
+.node-bottom > span {
+  color: #7d8089;
+  font-size: 8px;
+}
+
+.expand-node {
+  min-width: 22px;
+  opacity: 0;
+  border-color: #ddd9e5;
+  color: #7357a9;
+  background: #f7f4fa;
+  transition:
+    opacity 0.16s ease,
+    background 0.16s ease;
+}
+
+.architecture-node:hover .expand-node,
+.expand-node:focus-visible {
+  opacity: 1;
+}
+
+.expand-node:hover {
+  border-color: #b5a2d3;
+  color: #4d337e;
+  background: #eee8f5;
+}
+
+.node-tooltip {
+  border-color: #dedfe5;
+  color: #303137;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(31, 25, 42, 0.13);
+}
+
+.node-tooltip > span {
+  color: #666a73;
+}
+
+.node-tooltip small {
+  color: #858892;
+}
+
+.instance-array i {
+  border-color: #8f78bc;
+  background: #8f78bc18;
+}
+
+.instance-array.replicas i {
+  border-color: #72a18d;
+  background: #72a18d16;
+}
+
+.has-replicas {
+  box-shadow:
+    3px 3px 0 #f5f8f6,
+    4px 4px 0 #dce8e1;
+}
+
+.world-node-insight,
+.world-node-comparison {
+  color: #70539e;
+  border-color: #cbbde0;
+  background: #faf7fd;
+}
+
+.edge-label {
+  display: grid;
+  gap: 3px;
+  min-width: max-content;
+  max-width: 230px;
+  padding: 7px 9px;
+  border: 1px solid #dddfe4;
+  border-radius: 8px;
+  color: #5f626b;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(30, 27, 36, 0.1);
+  font-size: 8px;
+  text-align: left;
+}
+
+.edge-label b {
+  color: #7254a9;
+  font-size: 7px;
+  letter-spacing: 0.11em;
+}
+
+.edge-label span {
+  color: #34363c;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.edge-label small {
+  color: #81848c;
+  font-size: 8px;
+}
+
+.edge-label.active {
+  border-color: #a58bce;
+  color: #4f3488;
+  background: #fbf8ff;
+}
+
+.canvas-tools,
+.world-mode .canvas-tools,
+.world-mode.is-visualizing .canvas-tools {
+  top: auto;
+  right: calc(4.5vw + 18px);
+  bottom: 46px;
+  height: 34px;
+  gap: 1px;
+  padding: 0 3px;
+  border: 1px solid #e0e1e5;
+  border-radius: 9px;
+  color: #666973;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 5px 18px rgba(31, 30, 37, 0.08);
+}
+
+.canvas-tools .icon-button {
+  width: 29px;
+}
+
+.inspector,
+.world-mode .inspector {
+  top: 92px;
+  right: 4.5vw;
+  bottom: 28px;
+  width: 355px;
+  max-height: none;
+  border: 1px solid #dfe0e5;
+  border-radius: 0 20px 20px 0;
+  color: #35373e;
+  background: #fff;
+  box-shadow: -12px 0 35px rgba(32, 28, 40, 0.08);
+}
+
+@media (min-width: 901px) {
+  .universe-app:has(.inspector) .canvas-tools {
+    right: calc(4.5vw + 373px);
+  }
+}
+
+.inspector h2,
+.inspector-heading h2,
+.inspector-section strong {
+  color: #292b31;
+}
+
+.inspector-description,
+.inspector-section p,
+.inspector-section small {
+  color: #666a73;
+}
+
+.inspector-section,
+.inspector-topline,
+.inspector-footer {
+  border-color: #ececef;
+}
+
+.inspector-icon,
+.kind-tag,
+.world-confidence {
+  border-color: #dfd9e8;
+  color: #6e519f;
+  background: #f7f3fa;
+}
+
+.search-backdrop,
+.challenge-modal-backdrop {
+  background: rgba(241, 242, 245, 0.78);
+  backdrop-filter: none;
+}
+
+.search-palette,
+.architecture-explorer,
+.challenge-selector {
+  border: 1px solid #dedfe4;
+  color: #303238;
+  background: #fff;
+  box-shadow: 0 26px 70px rgba(31, 25, 42, 0.15);
+}
+
+.search-input-wrap {
+  border-color: #e7e7eb;
+  color: #70737c;
+  background: #fafafd;
+}
+
+.search-input-wrap input {
+  color: #2d2f35;
+  background: transparent;
+}
+
+.search-result,
+.scenario-choice {
+  color: #34363c;
+}
+
+.search-result:hover,
+.search-result.active,
+.scenario-choice:hover,
+.scenario-choice.selected {
+  color: #392951;
+  background: #f6f2fa;
+}
+
+.search-result strong,
+.scenario-choice strong {
+  color: #303238;
+}
+
+.search-result small,
+.scenario-choice small,
+.search-footer,
+.world-family-description,
+.world-challenges small {
+  color: #797c85;
+}
+
+.search-result-icon {
+  border-color: #e1dce9;
+  color: #7455aa;
+  background: #faf8fc;
+}
+
+.challenge-selector h2,
+.challenge-panel h2 {
+  color: #292a30;
+}
+
+.challenge-selector > p,
+.challenge-selector > small,
+.challenge-panel > p,
+.challenge-context {
+  color: #6f727b;
+}
+
+.challenge-eyebrow,
+.challenge-panel header > span {
+  color: #7558a7;
+}
+
+.challenge-difficulties button {
+  border-color: #e1e2e6;
+  color: #34353b;
+  background: #fbfbfd;
+}
+
+.challenge-difficulties button:hover {
+  border-color: #a893cc;
+  color: #4c3476;
+  background: #f7f3fb;
+}
+
+.challenge-panel {
+  top: 110px;
+  left: calc(4.5vw + 18px);
+  width: 286px;
+  max-height: calc(100vh - 205px);
+  padding: 13px;
+  border: 1px solid #dedfe4;
+  border-radius: 13px;
+  color: #34363d;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 12px 32px rgba(38, 31, 50, 0.11);
+  backdrop-filter: none;
+}
+
+.challenge-panel h2 {
+  font-size: 15px;
+}
+
+.challenge-panel > p {
+  font-size: 10px;
+}
+
+.challenge-metrics > span,
+.challenge-result,
+.challenge-key,
+.challenge-hints,
+.challenge-solution {
+  border-color: #e4e3e7;
+  color: #4d4f57;
+  background: #fafafd;
+}
+
+.challenge-metrics small,
+.challenge-metrics i,
+.challenge-result p,
+.challenge-key p,
+.challenge-solution,
+.challenge-hints p {
+  color: #6f727a;
+}
+
+.challenge-metrics .critical strong,
+.challenge-node-signal {
+  color: #aa5d55;
+}
+
+.challenge-metrics .warning strong {
+  color: #947129;
+}
+
+.challenge-metrics .good strong,
+.challenge-node-modified {
+  color: #3f8567;
+}
+
+.challenge-result.solved {
+  border-color: #b8d3c4;
+  background: #f3faf6;
+}
+
+.challenge-result.partial {
+  border-color: #dfd0ad;
+  background: #fdfaf2;
+}
+
+.challenge-primary-actions button {
+  min-height: 34px;
+  border-color: #7654c2;
+  color: #fff;
+  background: #7654c2;
+}
+
+.challenge-primary-actions button:hover {
+  color: #fff;
+  background: #6846b2;
+}
+
+.challenge-primary-actions button + button {
+  color: #5e438f;
+  background: #f1ebf8;
+}
+
+.challenge-secondary-actions button,
+.challenge-more-actions button {
+  color: #6f727b;
+}
+
+.challenge-secondary-actions button:hover,
+.challenge-more-actions button:hover {
+  color: #543888;
+}
+
+.challenge-more-actions {
+  display: grid;
+  gap: 2px;
+  margin-top: 7px;
+  padding: 6px;
+  border: 1px solid #e4e3e7;
+  border-radius: 8px;
+  background: #fafafd;
+}
+
+.challenge-more-actions button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px;
+  text-align: left;
+  font-size: 8px;
+}
+
+.challenge-changes span,
+.challenge-actions button {
+  border-color: #ded8e7;
+  color: #5c477d;
+  background: #f7f3fa;
+}
+
+.challenge-actions button small {
+  color: #767982;
+}
+
+.challenge-actions button:disabled {
+  border-color: #bed3c6;
+  color: #438064;
+  background: #f2f8f4;
+}
+
+.architecture-node.challenge-problem {
+  border-color: #c9948e;
+  background: #fffafa;
+}
+
+.architecture-node.challenge-modified {
+  border-color: #83ae98;
+  background: #f9fdfb;
+}
+
+.challenge-node-signal {
+  left: 10px;
+  right: 10px;
+  bottom: 8px;
+}
+
+.challenge-node-signal small {
+  color: #9c7975;
+}
+
+.world-player,
+.simulation-area {
+  bottom: 43px;
+  z-index: 16;
+  max-width: calc(100vw - 64px);
+}
+
+.world-player-bar,
+.simulation-toolbar {
+  min-height: 46px;
+  padding: 6px;
+  gap: 5px;
+  border: 1px solid #dcdde2;
+  border-radius: 12px;
+  color: #4d5058;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 10px 30px rgba(34, 30, 42, 0.12);
+  backdrop-filter: none;
+}
+
+.world-play-button,
+.visualize-button {
+  min-width: 82px;
+  min-height: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  background: #7654c2;
+  box-shadow: none;
+}
+
+.world-play-button:hover,
+.visualize-button:hover {
+  color: #fff;
+  background: #6846b2;
+}
+
+.world-player .world-scenario-select select {
+  max-width: 185px;
+  padding: 7px 25px 7px 9px;
+  color: #44474f;
+  background: transparent;
+}
+
+.world-scenario-select > svg {
+  color: #777a83;
+}
+
+.flow-selector {
+  color: #4f525a;
+}
+
+.compact-flow-progress {
+  min-width: 76px;
+  color: #6e717a;
+  font-size: 9px;
+  text-align: center;
+}
+
+.world-step-card,
+.simulation-story,
+.world-completion {
+  width: 350px;
+  max-width: calc(100vw - 40px);
+  margin: 0 auto 8px;
+  padding: 10px 12px;
+  border: 1px solid #e0e1e5;
+  border-radius: 10px;
+  color: #31333a;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 8px 24px rgba(36, 31, 43, 0.09);
+  backdrop-filter: none;
+}
+
+.world-step-card,
+.simulation-story {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.world-step-count,
+.simulation-story > span {
+  flex: 0 0 auto;
+  color: #7457a8;
+  font-size: 8px;
+  font-weight: 650;
+}
+
+.world-step-explanation strong,
+.simulation-story strong,
+.world-completion strong {
+  color: #303238;
+  font-size: 11px;
+}
+
+.world-step-explanation p,
+.simulation-story p,
+.world-completion p {
+  margin: 3px 0 0;
+  color: #73767f;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.world-completion > div:first-child {
+  color: #4e8a6e;
+}
+
+.world-summary-actions button {
+  color: #634590;
+}
+
+.scenario-slate {
+  border-color: #dedfe4;
+  color: #4b355f;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(36, 29, 47, 0.1);
+}
+
+.flow-options,
+.control-popover {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  left: auto;
+  width: 286px;
+  padding: 7px;
+  color: #4d5058;
+}
+
+.flow-options > label,
+.flow-options > button {
+  display: flex;
+  width: 100%;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  color: #555860;
+  font-size: 9px;
+  text-align: left;
+}
+
+.flow-options > button:hover {
+  background: #f6f3fa;
+}
+
+.flow-options .flow-scrubber {
+  display: grid;
+  grid-template-columns: 62px 1fr;
+}
+
+.flow-scrubber input {
+  accent-color: #7654c2;
+}
+
+.traffic-options button {
+  border-color: #e0e1e5;
+  color: #666972;
+  background: #fafafd;
+}
+
+.traffic-options button.selected {
+  border-color: #9c86c0;
+  color: #4e337d;
+  background: #f1ecf7;
+}
+
+.scenario-choice.selected {
+  background: #f5f1f9;
+}
+
+.world-timeline,
+.trace-panel,
+.world-sources {
+  border-color: #dedfe4;
+  color: #3d3f46;
+  background: #fff;
+  box-shadow: 0 15px 45px rgba(34, 28, 43, 0.13);
+}
+
+.world-timeline button,
+.trace-panel,
+.world-sources p,
+.world-sources small {
+  color: #666a73;
+}
+
+.world-timeline button.active {
+  color: #4e347d;
+  background: #f5f1f9;
+}
+
+.client-preview,
+.node-activity {
+  border-color: #e0e1e5;
+  color: #555861;
+  background: #fafafd;
+}
+
+.failure-notice,
+.scale-notice,
+.focus-indicator {
+  top: 108px;
+  border-color: #e2c4c1;
+  color: #7f4641;
+  background: #fff7f6;
+  box-shadow: 0 8px 22px rgba(44, 35, 48, 0.08);
+}
+
+.scale-notice {
+  border-color: #c9ddd2;
+  color: #477560;
+  background: #f5faf7;
+}
+
+.focus-indicator {
+  border-color: #d8cce6;
+  color: #5e4388;
+  background: #faf7fd;
+}
+
+.loading-context,
+.world-route-error,
+.error-screen {
+  border-color: #e0e1e5;
+  color: #555861;
+  background: #fff;
+}
+
+.request-packet,
+.world-packet {
+  filter: drop-shadow(0 1px 3px rgba(87, 54, 145, 0.28));
+}
+
+@media (max-width: 900px) {
+  .app-header {
+    padding: 0 16px;
+  }
+  .brand strong {
+    font-size: 11px;
+  }
+  .primary-nav {
+    margin-left: 16px;
+  }
+  .search-trigger {
+    min-width: 36px;
+    width: 36px;
+    justify-content: center;
+    padding: 0;
+  }
+  .search-trigger span,
+  .search-trigger kbd {
+    display: none;
+  }
+  .preset-trigger {
+    max-width: 185px;
+  }
+  .canvas-container,
+  .world-mode .canvas-container,
+  .is-visualizing .canvas-container,
+  .world-mode.is-visualizing .canvas-container,
+  .world-mode.world-parallel.is-visualizing .canvas-container {
+    inset: 82px 18px 18px;
+  }
+  .canvas-tools,
+  .world-mode .canvas-tools,
+  .world-mode.is-visualizing .canvas-tools {
+    right: 34px;
+    bottom: 34px;
+  }
+  .challenge-panel {
+    left: 34px;
+    top: 98px;
+    bottom: auto;
+    width: 276px;
+    max-height: calc(100vh - 210px);
+  }
+  .inspector,
+  .world-mode .inspector {
+    top: 82px;
+    right: 18px;
+    bottom: 18px;
+  }
+}
+
+@media (max-width: 650px) {
+  .app-header {
+    height: 58px;
+    padding: 0 10px;
+    gap: 7px;
+  }
+  .brand strong {
+    display: none;
+  }
+  .brand-mark,
+  .brand-mark svg {
+    width: 26px;
+  }
+  .primary-nav {
+    margin: 0 auto 0 0;
+  }
+  .primary-nav button:first-child {
+    display: none;
+  }
+  .primary-nav button {
+    padding: 7px 8px;
+    font-size: 10px;
+  }
+  .header-actions {
+    gap: 4px;
+  }
+  .preset-trigger {
+    max-width: 122px;
+    height: 34px;
+    font-size: 9px;
+  }
+  .preset-trigger span {
+    display: inline-block;
+    max-width: 92px;
+  }
+  .more-trigger {
+    width: 28px;
+  }
+  .nav-more-menu,
+  .help-panel {
+    top: 52px;
+    right: 10px;
+  }
+  .canvas-container,
+  .world-mode .canvas-container,
+  .is-visualizing .canvas-container,
+  .world-mode.is-visualizing .canvas-container,
+  .world-mode.world-parallel.is-visualizing .canvas-container {
+    inset: 70px 8px 10px;
+    border-radius: 15px;
+  }
+  .canvas-heading,
+  .world-deep-context {
+    top: 82px;
+    left: 20px;
+  }
+  .canvas-tools,
+  .world-mode .canvas-tools,
+  .world-mode.is-visualizing .canvas-tools {
+    top: 82px;
+    right: 18px;
+    bottom: auto;
+  }
+  .world-player,
+  .simulation-area {
+    bottom: 18px;
+    width: calc(100vw - 32px);
+    max-width: none;
+  }
+  .world-player-bar,
+  .simulation-toolbar {
+    width: max-content;
+    max-width: 100%;
+    margin: 0 auto;
+    flex-wrap: nowrap;
+  }
+  .world-scenario-select select,
+  .flow-selector span {
+    max-width: 125px;
+  }
+  .compact-flow-progress {
+    min-width: 62px;
+    font-size: 8px;
+  }
+  .flow-options,
+  .control-popover {
+    right: 0;
+    width: min(286px, calc(100vw - 32px));
+  }
+  .challenge-panel {
+    top: 82px;
+    left: 20px;
+    bottom: auto;
+    width: min(280px, calc(100vw - 40px));
+    max-height: 225px;
+  }
+  .challenge-panel > p,
+  .challenge-hints {
+    display: block;
+  }
+  .inspector,
+  .world-mode .inspector {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: 10px;
+    width: auto;
+    max-height: 55vh;
+    border-radius: 14px;
+  }
+  .world-step-card,
+  .simulation-story,
+  .world-completion {
+    width: min(350px, calc(100vw - 32px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .architecture-node,
+  .canvas-container,
+  .world-mode .canvas-container {
+    transition: none !important;
+  }
+}

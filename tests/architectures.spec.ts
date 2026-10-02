@@ -1,5 +1,17 @@
 import { expect, test } from '@playwright/test';
 
+async function openFlowOptions(page: import('@playwright/test').Page) {
+  const options = page.getByRole('dialog', { name: 'Flow options' });
+  if (!(await options.isVisible()))
+    await page.getByRole('button', { name: 'Flow options', exact: true }).click();
+  return options;
+}
+
+async function openMore(page: import('@playwright/test').Page) {
+  await page.getByRole('button', { name: 'More options' }).click();
+  return page.getByRole('menu', { name: 'More options' });
+}
+
 test('selector navigates generic pattern to sourced company on the same canvas', async ({
   page,
 }) => {
@@ -16,12 +28,16 @@ test('selector navigates generic pattern to sourced company on the same canvas',
   await options.first().click();
   await expect(page).toHaveURL(/architecture\/video\/generic\/playback/);
   await page.locator('.react-flow').evaluate((el) => el.setAttribute('data-persistent', 'yes'));
-  await page.getByRole('button', { name: 'Netflix', exact: true }).click();
+  await page.getByRole('button', { name: 'Choose architecture preset' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /Video Streaming/ }).click();
+  await page.getByRole('button', { name: /Netflix/ }).click();
   await expect(page.getByTestId('concept-rw-cdn')).toContainText('Open Connect Appliance');
   await expect(page.locator('.react-flow')).toHaveAttribute('data-persistent', 'yes');
-  await page.getByRole('combobox', { name: 'Compare architecture' }).selectOption('generic');
+  const more = await openMore(page);
+  await more.getByRole('combobox', { name: 'Compare architecture' }).selectOption('generic');
   await expect(page.getByTestId('concept-rw-cdn')).toHaveClass(/compare-different/);
-  await page.getByRole('button', { name: 'Evidence & sources' }).click();
+  const sourcesMenu = await openMore(page);
+  await sourcesMenu.getByRole('menuitem', { name: 'Sources' }).click();
   await expect(page.getByRole('complementary', { name: 'Architecture sources' })).toContainText(
     'Open Connect overview',
   );
@@ -45,18 +61,22 @@ test('deep links, browser history, and global company search restore the right w
   await page.getByRole('textbox', { name: 'Search concepts' }).fill('Netflix');
   await page.getByRole('button', { name: /Explore Netflix/ }).click();
   await expect(page).toHaveURL(/video\/netflix\/playback$/);
-  await page.getByRole('button', { name: 'Back to component universe' }).click();
+  await page
+    .getByRole('navigation', { name: 'Primary navigation' })
+    .getByRole('button', { name: 'Explore' })
+    .click();
   await expect(page.getByTestId('concept-client')).toBeVisible();
 });
 test('parallel paths animate together, pause holds motion, and completion resets every packet', async ({
   page,
 }) => {
   await page.goto('/architecture/search/google/search-query');
+  await openFlowOptions(page);
   await page.getByRole('button', { name: 'Toggle flow timeline' }).click();
   await page.getByRole('button', { name: /Search partition A \+ Search partition B/ }).click();
   await page.getByRole('button', { name: 'Close flow timeline' }).click();
   await expect(page.locator('.world-packet')).toHaveCount(2);
-  await expect(page.locator('.world-step-card')).toContainText('PARALLEL');
+  await expect(page.locator('.world-step-card')).toContainText('Search partition');
   await page.getByRole('button', { name: 'Resume flow' }).click();
   await page.waitForTimeout(200);
   await page.getByRole('button', { name: 'Pause flow' }).click();
@@ -72,15 +92,19 @@ test('parallel paths animate together, pause holds motion, and completion resets
   expect(later).toBe(time);
   await expect(page.getByTestId('concept-rw-client')).toHaveCSS('filter', 'none');
   await page.screenshot({ path: 'tests/realworld-parallel.png' });
-  await page.getByRole('button', { name: 'Jump to step 6', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Playback speed' }).selectOption('2');
+  await openFlowOptions(page);
+  await page.getByRole('button', { name: 'Toggle flow timeline' }).click();
+  await page.locator('.world-timeline > button').nth(5).click();
+  await openFlowOptions(page);
+  await page.getByRole('combobox', { name: 'Playback speed' }).selectOption('0');
+  await page.getByRole('button', { name: 'Close flow options' }).click();
   await page.getByRole('button', { name: 'Resume flow' }).click();
   await expect(page.locator('.world-completion')).toBeVisible();
   await expect(page.locator('.request-packet')).toHaveCount(0);
   await expect(page.locator('.architecture-node.is-active')).toHaveCount(0);
   await expect(page.locator('.edge-active')).toHaveCount(0);
   await page.getByRole('button', { name: 'Replay', exact: true }).click();
-  await expect(page.locator('.world-step-heading')).toContainText('STEP 1');
+  await expect(page.locator('.world-step-count')).toContainText('1 /');
   await page.getByRole('button', { name: 'Restart flow', exact: true }).click();
   await expect(page.locator('.world-step-card')).toHaveCount(0);
   await expect(page.locator('.request-packet')).toHaveCount(0);
@@ -89,6 +113,7 @@ test('cache and failure branches change the timeline and inspection pauses the f
   page,
 }) => {
   await page.goto('/architecture/video/netflix/playback');
+  await openFlowOptions(page);
   await page.getByRole('combobox', { name: 'Debug condition' }).selectOption('cache-hit');
   await page.getByRole('button', { name: 'Toggle flow timeline' }).click();
   await expect(page.locator('.world-timeline')).not.toContainText('Cold edge');
@@ -100,9 +125,10 @@ test('cache and failure branches change the timeline and inspection pauses the f
   await expect(inspector).toContainText('verified');
   await inspector.getByRole('button', { name: /Explore CDN/ }).click();
   await expect(page.getByTestId('concept-cdn')).toBeVisible();
-  await page.getByRole('button', { name: 'Return to Netflix architecture' }).click();
+  await page.getByRole('button', { name: /Return to Netflix/ }).click();
   await expect(page.getByTestId('concept-rw-cdn')).toBeVisible();
   await page.goto('/architecture/commerce/amazon/place-order');
+  await openFlowOptions(page);
   await page.getByRole('combobox', { name: 'Debug condition' }).selectOption('payment-timeout');
   await page.getByRole('button', { name: 'Toggle flow timeline' }).click();
   await expect(page.locator('.world-timeline')).toContainText('Release reservation');
@@ -116,7 +142,7 @@ test('reduced motion retains step highlighting without moving packets', async ({
   await expect(page.locator('.request-packet')).toHaveCount(0);
   await page.getByRole('button', { name: 'Pause flow' }).click();
   await page.getByRole('button', { name: 'Next flow step' }).click();
-  await expect(page.locator('.world-step-heading')).toContainText('STEP 2');
+  await expect(page.locator('.world-step-count')).toContainText('2 /');
 });
 test('mobile player and architecture explorer fit without horizontal overflow', async ({
   page,
@@ -126,8 +152,11 @@ test('mobile player and architecture explorer fit without horizontal overflow', 
   await page.getByRole('button', { name: 'Play flow', exact: true }).click();
   await expect(page.locator('.world-packet')).toHaveCount(1);
   await page.getByRole('button', { name: 'Pause flow' }).click();
-  await expect(page.getByRole('combobox', { name: 'Playback speed' })).toBeVisible();
-  await expect(page.getByRole('combobox', { name: 'Debug condition' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Playback speed' })).toHaveCount(0);
+  const flowOptions = await openFlowOptions(page);
+  await expect(flowOptions.getByRole('combobox', { name: 'Playback speed' })).toBeVisible();
+  await expect(flowOptions.getByRole('combobox', { name: 'Debug condition' })).toBeVisible();
+  await flowOptions.getByRole('button', { name: 'Close flow options' }).click();
   await expect
     .poll(async () => {
       const bounds = await page.getByTestId('concept-rw-server').boundingBox();
@@ -160,7 +189,7 @@ test('social, sync, audio, and payment families run their own flows without runt
     await page.getByRole('button', { name: 'Play flow', exact: true }).click();
     await page.getByRole('button', { name: 'Pause flow' }).click();
     await page.getByRole('button', { name: 'Next flow step' }).click();
-    await expect(page.locator('.world-step-heading')).toContainText('STEP 2');
+    await expect(page.locator('.world-step-count')).toContainText('2 /');
     await expect(page.locator('.world-packet')).toHaveCount(1);
     await page.getByRole('button', { name: 'Restart flow' }).click();
     await expect(page.locator('.request-packet')).toHaveCount(0);

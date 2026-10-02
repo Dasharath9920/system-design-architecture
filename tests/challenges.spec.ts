@@ -17,7 +17,9 @@ async function openChallenge(page: Page, difficulty: 'Easy' | 'Medium' | 'Hard')
 }
 
 async function finishFlow(page: Page, buttonName: 'Run flow' | 'Test solution') {
+  await page.getByRole('button', { name: 'Flow options' }).click();
   await page.getByRole('combobox', { name: 'Playback speed' }).selectOption('0');
+  await page.getByRole('button', { name: 'Close flow options' }).click();
   await page.getByRole('button', { name: buttonName, exact: true }).click();
   await expect(page.locator('.request-packet, .architecture-node.is-active')).toHaveCount(0);
 }
@@ -30,10 +32,11 @@ test('easy challenge runs the baseline, applies a contextual fix, and solves the
   await openChallenge(page, 'Easy');
   const panel = page.getByRole('complementary', { name: 'Active system design challenge' });
   await expect(panel).toContainText('Single Server Overload');
-  await expect(panel).toContainText('SIMULATED');
+  await expect(panel).not.toContainText('SIMULATED');
   await expect(page).toHaveURL(/architecture\/commerce\/generic\/search-product$/);
 
   await finishFlow(page, 'Run flow');
+  await expect(page.getByTestId('concept-rw-service')).toContainText('SIMULATED');
   await page.getByTestId('concept-rw-service').click();
   const inspector = page.getByRole('complementary').filter({ hasText: 'MODIFY SYSTEM' });
   await expect(inspector).not.toContainText('TOUCH THE SYSTEM');
@@ -71,7 +74,8 @@ test('medium challenge reports partial improvement and reset clears the proposed
   await expect(panel).not.toContainText('Problem remains');
   await expect(panel).toContainText('Replica capacity absorbs part of the spike');
 
-  await panel.getByRole('button', { name: /Reset/ }).click();
+  await panel.getByRole('button', { name: 'More challenge options' }).click();
+  await panel.getByRole('button', { name: /Reset challenge/ }).click();
   await expect(panel).not.toContainText('Partial improvement');
   await expect(panel).not.toContainText('Add read replica');
   await expect(page.getByTestId('concept-rw-posts')).not.toContainText('Add read replica');
@@ -88,7 +92,10 @@ test('hard challenge reveals progressive guidance and can apply the authored sol
   await expect(panel).not.toContainText('Hint 2');
   await panel.getByRole('button', { name: /Hint/ }).click();
   await expect(panel).toContainText('Hint 2');
+  await page.getByRole('button', { name: 'Flow options' }).click();
   await page.getByRole('combobox', { name: 'Playback speed' }).selectOption('0');
+  await page.getByRole('button', { name: 'Close flow options' }).click();
+  await panel.getByRole('button', { name: 'More challenge options' }).click();
   await panel.getByRole('button', { name: 'Show solution', exact: true }).click();
   await expect(panel).toContainText('WHY IT WORKS');
   await expect(panel).toContainText('Challenge solved');

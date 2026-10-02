@@ -2,17 +2,18 @@ import { expect, test, type Page } from '@playwright/test';
 
 const nodes = (page: Page) => page.locator('[data-testid^="concept-"]');
 const concept = (page: Page, id: string) => page.getByTestId(`concept-${id}`);
-const overviewHeading = 'One system. A world of connections.';
 
 async function openUniverse(page: Page): Promise<void> {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: overviewHeading })).toBeVisible();
+  await expect(
+    page.getByRole('application', { name: 'Interactive system architecture canvas' }),
+  ).toBeVisible();
   await expect(nodes(page)).toHaveCount(18);
   await expect(concept(page, 'client')).toBeVisible();
 }
 
 async function zoomPercent(page: Page): Promise<number> {
-  return Number.parseInt(await page.locator('.canvas-tools > span').innerText(), 10);
+  return (await viewport(page)).zoom * 100;
 }
 
 async function viewport(page: Page): Promise<{ x: number; y: number; zoom: number }> {
@@ -50,8 +51,8 @@ test('opens directly into 18 non-overlapping components without runtime errors',
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await openUniverse(page);
-  await expect(page.locator('.canvas-status')).toContainText('18 components');
-  await expect(page.getByRole('button', { name: 'Visualize request', exact: true })).toBeVisible();
+  await expect(page.locator('.canvas-status')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Play flow', exact: true })).toBeVisible();
   await expect(page.getByRole('complementary')).toHaveCount(0);
 
   const boxes = await nodes(page).evaluateAll((elements) =>
@@ -112,7 +113,7 @@ test('expands cache and Redis, then collapses through the breadcrumb', async ({ 
   await expect(page.getByRole('heading', { name: 'Inside Cache', exact: true })).toBeVisible();
   await page.locator('.breadcrumb').getByRole('button', { name: 'Universe', exact: true }).click();
   await expect(nodes(page)).toHaveCount(18);
-  await expect(page.getByRole('heading', { name: overviewHeading })).toBeVisible();
+  await expect(concept(page, 'client')).toBeVisible();
 });
 
 test('keyboard search reveals Redis in its architecture and supports empty results', async ({
@@ -221,28 +222,31 @@ test('presets select the appropriate graph and reset restores production', async
   await openUniverse(page);
   await page.locator('.preset-trigger').click();
   await page.getByRole('button', { name: /^URL shortener / }).click();
-  await expect(page.locator('.breadcrumb')).toContainText('URL shortener');
+  await expect(page.getByRole('button', { name: 'Choose architecture preset' })).toContainText(
+    'URL shortener',
+  );
   await expect(nodes(page)).toHaveCount(12);
   await expect(concept(page, 'auth')).toHaveCount(0);
   await expect(concept(page, 'database')).toBeVisible();
   await page.getByRole('button', { name: 'Reset universe', exact: true }).click();
-  await expect(page.locator('.breadcrumb')).toContainText('Production system');
+  await expect(page.getByRole('button', { name: 'Choose architecture preset' })).toContainText(
+    'Production system',
+  );
   await expect(nodes(page)).toHaveCount(18);
 });
 
 test('request visualization plays, pauses, advances, and closes', async ({ page }) => {
   await openUniverse(page);
-  await page.getByRole('button', { name: 'Visualize request', exact: true }).click();
+  await page.getByRole('button', { name: 'Play flow', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pause flow', exact: true })).toBeVisible();
   await expect(page.locator('.simulation-story')).toContainText('Resolve the hostname');
   await expect(page.locator('.request-packet').first()).toBeAttached();
   await page.getByRole('button', { name: 'Pause flow', exact: true }).click();
-  await page.getByRole('button', { name: 'Go to step 1', exact: true }).click();
-  const before = await page.locator('.story-text strong').innerText();
+  const before = await page.locator('.simulation-story strong').innerText();
   await page.getByRole('button', { name: 'Next simulation step', exact: true }).click();
-  await expect(page.locator('.story-text strong')).not.toHaveText(before);
+  await expect(page.locator('.simulation-story strong')).not.toHaveText(before);
   await expect(page.locator('.simulation-story')).toContainText('Keep the answer until its TTL');
-  await expect(page.getByRole('button', { name: 'Visualize request', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Play flow', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Close visualization' }).click();
   await expect(page.locator('.simulation-story')).toHaveCount(0);
   await expect(page.locator('.request-packet')).toHaveCount(0);
@@ -254,29 +258,30 @@ test('completed visualization clears its last frame and resets to the beginning'
   await openUniverse(page);
   await page.getByRole('button', { name: 'Choose request scenario' }).click();
   await page.getByRole('button', { name: /Edge cache hit/ }).click();
-  await page.getByRole('button', { name: 'Visualize request', exact: true }).click();
+  await page.getByRole('button', { name: 'Play flow', exact: true }).click();
 
   await expect(page.locator('.simulation-story')).toContainText('Resolve the hostname');
   await expect(page.locator('.simulation-story')).toHaveCount(0, { timeout: 15_000 });
   await expect(page.locator('.request-packet')).toHaveCount(0);
   await expect(page.locator('.architecture-node.is-active')).toHaveCount(0);
   await expect(page.locator('.architecture-edge.edge-active')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Visualize request', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Play flow', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Restart visualization' })).toHaveCount(0);
 
   // Starting again begins at step one rather than reviving the terminal frame.
-  await page.getByRole('button', { name: 'Visualize request', exact: true }).click();
+  await page.getByRole('button', { name: 'Play flow', exact: true }).click();
   await expect(page.locator('.simulation-story')).toContainText('Resolve the hostname');
 });
 
 test('traffic changes capacity, and cache failure shows a recoverable bypass', async ({ page }) => {
   await openUniverse(page);
-  await page.getByRole('button', { name: 'Adjust traffic' }).click();
-  await page.getByRole('button', { name: 'Surge', exact: true }).click();
+  await page.getByRole('button', { name: 'Flow options', exact: true }).click();
+  const flowOptions = page.getByRole('dialog', { name: 'Flow options' });
+  await flowOptions.getByRole('button', { name: 'Surge', exact: true }).click();
   await expect(page.locator('.scale-notice')).toContainText('6 service instances');
   await expect(concept(page, 'services')).toContainText('6 instances');
   await expect(concept(page, 'database')).toContainText('2 read replicas');
-  await page.getByRole('button', { name: 'Adjust traffic' }).click();
+  await flowOptions.getByRole('button', { name: 'Close flow options' }).click();
   await concept(page, 'cache').click();
   await page
     .getByRole('complementary', { name: 'Cache inspector' })
@@ -286,9 +291,10 @@ test('traffic changes capacity, and cache failure shows a recoverable bypass', a
   await expect(page.locator('.failure-notice')).toContainText('Cache unavailable');
   await expect(page.locator('.failure-notice')).toContainText('reads the database directly');
   await page.getByRole('button', { name: 'Close inspector' }).click();
-  await page.getByRole('button', { name: 'Visualize request', exact: true }).click();
+  await page.getByRole('button', { name: 'Play flow', exact: true }).click();
   await page.getByRole('button', { name: 'Pause flow', exact: true }).click();
-  await page.getByRole('button', { name: 'Go to step 10', exact: true }).click();
+  for (let index = 0; index < 9; index++)
+    await page.getByRole('button', { name: 'Next simulation step', exact: true }).click();
   await expect(page.locator('.simulation-story')).toContainText('Cache timeout · bypass the cache');
   await page.getByRole('button', { name: 'Next simulation step', exact: true }).click();
   await expect(page.locator('.simulation-story')).toContainText('Database traffic increases');
@@ -315,7 +321,7 @@ test('PostgreSQL playback stays inside its architecture and illuminates the prim
   const inspector = page.getByRole('complementary', { name: 'PostgreSQL inspector', exact: true });
   await inspector.getByRole('button', { name: /^Explore \d+ concepts$/ }).click();
   await expect(page.getByRole('heading', { name: 'Inside PostgreSQL', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Visualize request', exact: true }).click();
+  await page.getByRole('button', { name: 'Play flow', exact: true }).click();
   await expect(page.locator('.simulation-story')).toContainText('Borrow a bounded connection');
   await expect(concept(page, 'pg-primary')).toHaveClass(/is-active/);
   await expect(concept(page, 'connection-pool')).toHaveClass(/is-active/);
@@ -346,12 +352,12 @@ test('semantic zoom expands a selected component and collapses when zoomed out',
   await expect(deepHeading).toBeVisible();
   await expect(concept(page, 'redis')).toBeVisible();
   await page.waitForTimeout(1_200);
-  const rootHeading = page.getByRole('heading', { name: overviewHeading });
-  for (let count = 0; count < 10 && !(await rootHeading.isVisible()); count++) {
+  const rootClient = concept(page, 'client');
+  for (let count = 0; count < 10 && !(await rootClient.isVisible()); count++) {
     await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
     await settleViewport(page);
   }
-  await expect(rootHeading).toBeVisible();
+  await expect(rootClient).toBeVisible();
   await expect(nodes(page)).toHaveCount(18);
 });
 
@@ -369,7 +375,9 @@ test('searching for a root outside the current preset reveals it in production',
     .getByRole('button')
     .filter({ has: page.locator('strong', { hasText: /^Notifications$/ }) })
     .click();
-  await expect(page.locator('.breadcrumb')).toContainText('Production system');
+  await expect(page.getByRole('button', { name: 'Choose architecture preset' })).toContainText(
+    'Production system',
+  );
   await expect(concept(page, 'notifications')).toBeVisible();
   await expect(
     page.getByRole('complementary', { name: 'Notifications inspector', exact: true }),
@@ -418,7 +426,7 @@ test.describe('reduced motion', () => {
 
   test('teaches each request step without animated packets', async ({ page }) => {
     await openUniverse(page);
-    await page.getByRole('button', { name: 'Visualize request', exact: true }).click();
+    await page.getByRole('button', { name: 'Play flow', exact: true }).click();
     await expect(page.locator('.simulation-story')).toBeVisible();
     await expect(page.locator('.architecture-node.is-active').first()).toBeVisible();
     await expect(page.locator('.request-packet')).toHaveCount(0);

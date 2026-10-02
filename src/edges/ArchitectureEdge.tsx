@@ -4,6 +4,8 @@ import type { StepVisual } from '../experience/types';
 import { PacketTravel } from '../experience/PacketTravel';
 import { useWorld } from '../architectures/state';
 import { useUniverse } from '../state/universe';
+import { useExperience } from '../experience/preferences';
+import { concepts } from '../knowledge/catalog';
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -39,6 +41,7 @@ export type FlowEdge = Edge<
 >;
 export const ArchitectureEdge = memo(function ArchitectureEdge(props: EdgeProps<FlowEdge>) {
   const [hovered, setHovered] = useState(false);
+  const theme = useExperience((state) => state.theme);
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected } =
     props;
   const [path, x, y] = getSmoothStepPath({
@@ -66,19 +69,45 @@ export const ArchitectureEdge = memo(function ArchitectureEdge(props: EdgeProps<
     'alternative',
   ].includes(kind || '');
   const structural = kind === 'contains' || kind === 'alternative';
-  const color = data?.active
-    ? '#b6a4fa'
-    : selected || hovered || data?.connected
-      ? '#c8b5ff'
-      : data?.visited
-        ? '#817195'
-        : structural
-          ? '#494351'
-          : kind === 'telemetry'
-            ? '#536166'
-            : dashed
-              ? '#665941'
-              : '#41454f';
+  const architecture = useWorld.getState().architecture;
+  const sourceName =
+    architecture?.nodes.find((node) => node.id === data?.relationship.source)?.label ||
+    concepts[data?.relationship.source || '']?.name ||
+    data?.relationship.source;
+  const targetName =
+    architecture?.nodes.find((node) => node.id === data?.relationship.target)?.label ||
+    concepts[data?.relationship.target || '']?.name ||
+    data?.relationship.target;
+  const edgeType =
+    kind === 'telemetry' ? 'TELEMETRY' : dashed && !structural ? 'ASYNC EVENT' : 'REQUEST';
+  const color =
+    theme === 'dark'
+      ? data?.active
+        ? '#bca4f6'
+        : selected || hovered || data?.connected
+          ? '#a78cdb'
+          : data?.visited
+            ? '#6e657e'
+            : structural
+              ? '#353640'
+              : kind === 'telemetry'
+                ? '#40505a'
+                : dashed
+                  ? '#5d5140'
+                  : '#454852'
+      : data?.active
+        ? '#7654c2'
+        : selected || hovered || data?.connected
+          ? '#7352b9'
+          : data?.visited
+            ? '#aaa0b9'
+            : structural
+              ? '#dedbe3'
+              : kind === 'telemetry'
+                ? '#d8dde0'
+                : dashed
+                  ? '#d5c7b4'
+                  : '#d1d4db';
   return (
     <g
       className={`architecture-edge ${data?.active ? 'edge-active' : ''} ${data?.visited ? 'edge-visited' : ''} ${hovered ? 'edge-hovered' : ''} ${data?.boot ? 'edge-boot' : ''}`}
@@ -150,9 +179,17 @@ export const ArchitectureEdge = memo(function ArchitectureEdge(props: EdgeProps<
             className={`edge-label ${data?.active ? 'active' : ''}`}
             style={{ transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}
           >
-            {hovered && !data?.active
-              ? `${data?.relationship.kind} · ${data?.relationship.label}`
-              : data?.relationship.label}
+            {(hovered || selected) && !data?.active ? (
+              <>
+                <b>{edgeType}</b>
+                <span>
+                  {sourceName} → {targetName}
+                </span>
+                <small>{data?.relationship.label}</small>
+              </>
+            ) : (
+              data?.relationship.label
+            )}
           </span>
         </EdgeLabelRenderer>
       )}
