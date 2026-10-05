@@ -5,6 +5,7 @@ import {
   Ellipsis,
   Expand,
   HelpCircle,
+  History,
   Moon,
   Search,
   ScanLine,
@@ -18,6 +19,7 @@ import { useChallenge } from '../challenges/state';
 import { useExperience, type MotionPreference } from '../experience/preferences';
 import { presets } from '../scenarios/presets';
 import { useUniverse } from '../state/universe';
+import { useTimeMachine } from '../time-machine/state';
 import { UniverseLogo } from './Icon';
 
 export function Header() {
@@ -25,6 +27,7 @@ export function Header() {
   const world = useWorld();
   const challenge = useChallenge();
   const experience = useExperience();
+  const timeMachine = useTimeMachine();
   const [moreOpen, setMoreOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const preset = presets.find((item) => item.id === universe.presetId) || presets[0];
@@ -33,6 +36,7 @@ export function Header() {
     ? `${family?.name || world.architecture.familyId} · ${world.architecture.company}`
     : preset?.name || 'Production system';
   const explore = () => {
+    if (timeMachine.active) timeMachine.exit();
     if (challenge.challengeId) challenge.exit();
     else world.leave();
   };
@@ -57,15 +61,40 @@ export function Header() {
           </strong>
         </a>
         <nav className="primary-nav" aria-label="Primary navigation">
-          <button className={!challenge.challengeId ? 'active' : ''} onClick={explore}>
+          <button
+            className={!challenge.challengeId && !timeMachine.active ? 'active' : ''}
+            onClick={explore}
+          >
             Explore
           </button>
           <button
             className={challenge.challengeId ? 'active' : ''}
             aria-label="Challenges"
-            onClick={challenge.openSelector}
+            onClick={() => {
+              timeMachine.exit();
+              challenge.openSelector();
+            }}
           >
             Challenges
+          </button>
+          <button
+            className={timeMachine.active ? 'active' : ''}
+            aria-label="Time Machine"
+            onClick={() => {
+              if (challenge.challengeId) challenge.exit();
+              world.leave();
+              universe.set({
+                selectedId: null,
+                selectedEdge: null,
+                depthId: null,
+                focused: false,
+                running: false,
+                step: -1,
+              });
+              timeMachine.enter();
+            }}
+          >
+            <History size={13} /> Time Machine
           </button>
         </nav>
         <div className="header-actions">
@@ -83,7 +112,10 @@ export function Header() {
           <button
             className={`preset-trigger ${world.explorerOpen ? 'active' : ''}`}
             aria-label="Choose architecture preset"
-            onClick={() => world.set({ explorerOpen: !world.explorerOpen })}
+            onClick={() => {
+              timeMachine.exit();
+              world.set({ explorerOpen: !world.explorerOpen });
+            }}
             aria-expanded={world.explorerOpen}
           >
             <span>{architectureName}</span>

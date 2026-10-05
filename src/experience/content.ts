@@ -361,6 +361,7 @@ export function enrichScenarios(
                   : 'REQUEST',
         latencyMs: latency[step.edgeType] || 12,
         ...cue,
+        ...step.visual,
       };
       const external = step.to === 'rw-processor';
       const duration =

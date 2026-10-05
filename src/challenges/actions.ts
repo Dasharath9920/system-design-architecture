@@ -209,5 +209,29 @@ const definitions: Array<[string, string, string, string[]]> = [
   ],
 ];
 export const challengeActions: Record<string, ChallengeAction> = Object.fromEntries(
-  definitions.map(([id, label, summary, nodeIds]) => [id, { id, label, summary, nodeIds }]),
+  definitions.map(([id, label, summary, nodeIds]) => {
+    const changeType: ChallengeAction['changeType'] = ['sticky_read'].includes(id)
+      ? 'change-routing'
+      : ['make_async', 'async_media', 'conversation_ordering'].includes(id)
+        ? 'change-communication'
+        : ['add_consumers', 'autoscale', 'connection_gateways', 'add_partitions'].includes(id)
+          ? 'scale-component'
+          : ['repartition_data', 'shard_index', 'geo_partition', 'hybrid_fanout'].includes(id)
+            ? 'change-data'
+            : ['add_failover_replica', 'circuit_breaker', 'retry_budget', 'load_shedding'].includes(
+                  id,
+                )
+              ? 'change-failure'
+              : [
+                    'idempotency_key',
+                    'idempotent_consumer',
+                    'request_coalescing',
+                    'stagger_ttl',
+                    'split_hot_key',
+                    'direct_upload',
+                  ].includes(id)
+                ? 'change-policy'
+                : 'add-component';
+    return [id, { id, label, summary, nodeIds, changeType }];
+  }),
 );

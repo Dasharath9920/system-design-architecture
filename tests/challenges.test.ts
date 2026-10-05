@@ -4,6 +4,10 @@ import { challengeActions } from '../src/challenges/actions';
 import { challengeCounts, challenges } from '../src/challenges/data';
 import { evaluateChallenge, pickChallenge } from '../src/challenges/engine';
 import { loadArchitecture } from '../src/architectures/loader';
+import { compileFrames } from '../src/architectures/engine';
+import { presentationAt } from '../src/experience/presentation';
+import { challengeArchitecture } from '../src/challenges/mutations';
+import { shuffleChallengeOptions } from '../src/challenges/ChallengeActionPopover';
 
 test('challenge catalog contains ten unique, complete scenarios at each real difficulty', async () => {
   assert.deepEqual(challengeCounts, { easy: 10, medium: 10, hard: 10 });
@@ -22,6 +26,7 @@ test('challenge catalog contains ten unique, complete scenarios at each real dif
       `${challenge.id} references a missing flow`,
     );
     const nodeIds = new Set(architecture.nodes.map((node) => node.id));
+    const edgeIds = new Set(architecture.edges.map((edge) => edge.id));
     for (const symptom of challenge.symptoms)
       assert.ok(nodeIds.has(symptom.nodeId), `${challenge.id} has a missing symptom node`);
     for (const id of challenge.allowedActions) {
@@ -32,12 +37,86 @@ test('challenge catalog contains ten unique, complete scenarios at each real dif
         `${challenge.id}/${id} has no contextual target`,
       );
     }
+    const availableTargets = challenge.interactionTargets.filter((target) =>
+      target.targetType === 'node' ? nodeIds.has(target.targetId) : edgeIds.has(target.targetId),
+    );
+    for (const target of availableTargets) {
+      assert.ok(target.actions.length > 0 && target.actions.length <= 4);
+      assert.ok(target.actions.every((id) => challenge.allowedActions.includes(id)));
+    }
+    for (const id of challenge.allowedActions)
+      assert.ok(
+        availableTargets.some((target) => target.actions.includes(id)),
+        `${challenge.id}/${id} is not offered on the architecture`,
+      );
     for (const solution of [...challenge.validSolutions, ...challenge.partialSolutions])
       assert.ok(
         solution.actions.every((id) => challenge.allowedActions.includes(id)),
         `${challenge.id} solution uses a hidden action`,
       );
   }
+});
+
+test('stale-read fix changes the immediate read route and result while preserving the write', async () => {
+  const challenge = challenges.find((item) => item.id === 'replica-lag')!;
+  const base = await loadArchitecture('files');
+  const fixed = challengeArchitecture(base, challenge, ['sticky_read']);
+  const original = base.scenarios.find((item) => item.id === 'stale-read-challenge')!;
+  const replay = fixed.scenarios.find((item) => item.id === 'stale-read-challenge')!;
+  assert.deepEqual(replay.steps.slice(0, 5), original.steps.slice(0, 5));
+  assert.equal(original.steps[5].to, 'rw-replica');
+  assert.equal(replay.steps[5].to, 'rw-metadata');
+  assert.equal(
+    presentationAt(compileFrames(original, 'normal'), -1, true).clients['rw-client'],
+    'stale-version',
+  );
+  assert.equal(
+    presentationAt(compileFrames(replay, 'normal'), -1, true).clients['rw-client'],
+    'latest-version',
+  );
+  assert.equal(base.edges.find((edge) => edge.id === 'rw-gateway--rw-replica')!.type, 'read');
+  assert.equal(
+    fixed.edges.find((edge) => edge.id === 'rw-gateway--rw-replica')!.type,
+    'alternative',
+  );
+});
+
+test('adding a load balancer inserts it into the replayed request path', async () => {
+  const challenge = challenges.find((item) => item.id === 'single-server-overload')!;
+  const base = await loadArchitecture('commerce');
+  const evolved = challengeArchitecture(base, challenge, ['add_load_balancer']);
+  const scenario = evolved.scenarios.find((item) => item.id === challenge.architecture.scenario)!;
+  assert.ok(evolved.nodes.some((node) => node.id === 'challenge-add_load_balancer'));
+  assert.ok(
+    scenario.steps.some(
+      (step) => step.from === 'rw-gateway' && step.to === 'challenge-add_load_balancer',
+    ),
+  );
+  assert.ok(
+    scenario.steps.some(
+      (step) => step.from === 'challenge-add_load_balancer' && step.to === 'rw-service',
+    ),
+  );
+  assert.equal(
+    evolved.edges.find((edge) => edge.id === 'rw-gateway--rw-service')?.type,
+    'alternative',
+  );
+  assert.equal(base.edges.find((edge) => edge.id === 'rw-gateway--rw-service')?.type, 'request');
+});
+
+test('challenge choices can place the best action in any option position', () => {
+  const actions = ['best', 'partial', 'irrelevant'];
+  const sequence = (values: number[]) => {
+    let index = 0;
+    return () => values[Math.min(index++, values.length - 1)];
+  };
+  const positions = [
+    shuffleChallengeOptions(actions, () => 0.9).indexOf('best'),
+    shuffleChallengeOptions(actions, sequence([0.9, 0])).indexOf('best'),
+    shuffleChallengeOptions(actions, () => 0).indexOf('best'),
+  ];
+  assert.deepEqual(new Set(positions), new Set([0, 1, 2]));
+  assert.deepEqual(actions, ['best', 'partial', 'irrelevant']);
 });
 
 test('rule evaluation distinguishes resolved, partial, and irrelevant consequences', () => {

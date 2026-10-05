@@ -24,6 +24,15 @@ test('default surface is a light playground with only global navigation and canv
     'rgb(238, 240, 243)',
   );
 
+  await page.getByRole('button', { name: 'Challenges' }).click();
+  const challengeModal = page.getByRole('dialog', { name: 'System design challenges' });
+  await expect(challengeModal).toHaveCSS('background-color', 'rgb(251, 250, 255)');
+  await expect(challengeModal.getByText('Easy', { exact: true })).toHaveCSS(
+    'color',
+    'rgb(52, 49, 59)',
+  );
+  await page.getByRole('button', { name: 'Close challenges' }).click();
+
   await page.locator('.react-flow__edge').first().hover({ force: true });
   await expect(page.locator('.edge-label').first()).toContainText(/REQUEST|ASYNC EVENT|TELEMETRY/);
   await expect(page.locator('.edge-label').first()).toContainText('→');

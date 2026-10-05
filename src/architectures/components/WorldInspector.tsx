@@ -5,7 +5,6 @@ import { concepts } from '../../knowledge/catalog';
 import { Icon } from '../../components/Icon';
 import { SandboxActions } from '../../experience/SandboxActions';
 import { ConceptDemo } from '../../experience/ConceptDemo';
-import { ChallengeActions } from '../../challenges/ChallengeActions';
 import { useChallenge } from '../../challenges/state';
 const symbols = { verified: '✓', inferred: '~', conceptual: '◇' };
 export function WorldInspector() {
@@ -68,7 +67,6 @@ export function WorldInspector() {
         )}
         {node && (
           <>
-            <ChallengeActions node={node} />
             {!challengeId && <SandboxActions node={node} />}
             <ConceptDemo id={node.conceptId} />
           </>

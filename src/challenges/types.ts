@@ -23,6 +23,20 @@ export interface ChallengeAction {
   label: string;
   summary: string;
   nodeIds: string[];
+  changeType:
+    | 'add-component'
+    | 'scale-component'
+    | 'change-routing'
+    | 'change-policy'
+    | 'change-communication'
+    | 'change-data'
+    | 'change-failure';
+}
+export interface ChallengeInteractionTarget {
+  targetId: string;
+  targetType: 'node' | 'edge';
+  prompt: string;
+  actions: string[];
 }
 export interface ChallengeSolution {
   actions: string[];
@@ -35,6 +49,7 @@ export interface Challenge {
   difficulty: ChallengeDifficulty;
   category: ChallengeCategory;
   description: string;
+  observed: string;
   context: string;
   architecture: { family: string; company: string; scenario: string };
   workload: {
@@ -48,6 +63,7 @@ export interface Challenge {
   };
   symptoms: Array<{ nodeId: string; label: string }>;
   allowedActions: string[];
+  interactionTargets: ChallengeInteractionTarget[];
   validSolutions: ChallengeSolution[];
   partialSolutions: ChallengeSolution[];
   failureConditions: string[];
@@ -58,7 +74,16 @@ export interface Challenge {
   after: ChallengeMetric[];
   partialAfter: ChallengeMetric[];
 }
-export type ChallengePhase = 'briefing' | 'running' | 'observed' | 'testing' | 'partial' | 'solved';
+export type ChallengePhase =
+  | 'idle'
+  | 'observing'
+  | 'diagnosing'
+  | 'modifying'
+  | 'ready_to_test'
+  | 'testing'
+  | 'test_failed'
+  | 'partial'
+  | 'solved';
 export interface ChallengeEvaluation {
   status: 'unresolved' | 'partial' | 'solved';
   feedback: string;

@@ -1,12 +1,21 @@
 import type { Challenge, ChallengeCategory, ChallengeDifficulty, ChallengeMetric } from './types';
+import { challengeActions } from './actions';
 
 type Seed = Omit<
   Challenge,
-  'before' | 'after' | 'partialAfter' | 'workload' | 'failureConditions'
+  | 'before'
+  | 'after'
+  | 'partialAfter'
+  | 'workload'
+  | 'failureConditions'
+  | 'interactionTargets'
+  | 'observed'
 > & {
   metrics: Array<[string, string, string, string?]>;
   workload?: Challenge['workload'];
   failureConditions?: string[];
+  interactionTargets?: Challenge['interactionTargets'];
+  observed?: string;
 };
 const metric = (label: string, value: string, tone: ChallengeMetric['tone']): ChallengeMetric => ({
   label,
@@ -15,6 +24,20 @@ const metric = (label: string, value: string, tone: ChallengeMetric['tone']): Ch
 });
 const challenge = (seed: Seed): Challenge => ({
   ...seed,
+  observed:
+    seed.observed || `${seed.symptoms[0]?.label || 'The bottleneck'} is still on the active path.`,
+  interactionTargets:
+    seed.interactionTargets ||
+    [...new Set(seed.allowedActions.flatMap((id) => challengeActions[id].nodeIds))].map(
+      (targetId) => ({
+        targetId,
+        targetType: 'node' as const,
+        prompt: 'How would you change this part of the system?',
+        actions: seed.allowedActions.filter((id) =>
+          challengeActions[id].nodeIds.includes(targetId),
+        ),
+      }),
+    ),
   workload: seed.workload || {},
   failureConditions: seed.failureConditions || [
     'The original bottleneck remains on the critical path.',
@@ -62,7 +85,7 @@ export const challenges: Challenge[] = [
       'scaling',
       'commerce',
       'generic',
-      'search-product',
+      'app-overload-challenge',
       'Traffic has outgrown one application instance.',
       '18K requests/sec · CPU-bound request work',
       'rw-service',
@@ -613,14 +636,35 @@ export const challenges: Challenge[] = [
       'consistency',
       'files',
       'generic',
-      'sync-device',
+      'stale-read-challenge',
       'A write is acknowledged, then an immediate replica read returns an older version.',
       'Async replica lag 1.4 s',
       'rw-metadata',
       'STALE VERSION',
     ),
     workload: { trafficRps: 6000, readRatio: 0.86 },
+    observed: 'The write succeeded. The immediate read returned an older version.',
     allowedActions: ['sticky_read', 'add_read_replica', 'retry_budget'],
+    interactionTargets: [
+      {
+        targetId: 'rw-metadata',
+        targetType: 'node',
+        prompt: 'How should an immediate read see the latest version?',
+        actions: ['sticky_read', 'add_read_replica'],
+      },
+      {
+        targetId: 'rw-gateway',
+        targetType: 'node',
+        prompt: 'How should this session route its read?',
+        actions: ['sticky_read', 'retry_budget'],
+      },
+      {
+        targetId: 'rw-gateway--rw-replica',
+        targetType: 'edge',
+        prompt: 'How should the immediate read be routed?',
+        actions: ['sticky_read', 'add_read_replica'],
+      },
+    ],
     validSolutions: [
       solution(
         ['sticky_read'],
@@ -636,9 +680,9 @@ export const challenges: Challenge[] = [
       ),
     ],
     hints: [
-      'The write succeeded; the following read chose another copy.',
-      'This is a session consistency problem, not missing durability.',
-      'Route by a version token or temporarily read from the writer.',
+      'The write succeeds. Watch where the following read is served from.',
+      'Inspect the metadata store and the immediate read path through the replica.',
+      'Consider how a session can see its own latest write.',
     ],
     solutionExplanation:
       'Read-your-writes can use writer affinity, a consistency token, or waiting for a replica to reach a known position.',

@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
-import { ChevronRight, Minus, Plus, TriangleAlert } from 'lucide-react';
+import { ChevronRight, Minus, Plus, TriangleAlert, Wrench } from 'lucide-react';
 import type { Concept } from '../knowledge/types';
 import { Icon } from '../components/Icon';
 import { useUniverse } from '../state/universe';
@@ -37,6 +37,10 @@ export type ArchitectureNodeData = {
   unavailable?: boolean;
   challengeSignal?: string;
   challengeModified?: string;
+  challengeActionable?: boolean;
+  challengeInvestigate?: boolean;
+  challengeSpotlight?: boolean;
+  challengeDimmed?: boolean;
 };
 export type FlowNode = Node<ArchitectureNodeData, 'architecture'>;
 export const ArchitectureNode = memo(function ArchitectureNode({
@@ -67,7 +71,7 @@ export const ArchitectureNode = memo(function ArchitectureNode({
     !effect && ['rw-events', 'kafka', 'apache-kafka'].includes(concept.id) && showDetails;
   return (
     <div
-      className={`architecture-node domain-${concept.domain} ${selected ? 'is-selected' : ''} ${active ? 'is-active' : ''} ${failed ? 'is-failed' : ''} ${dimmed ? 'is-dimmed' : ''} ${!showDetails ? 'is-compact' : ''} ${replicas ? 'has-replicas' : ''} ${data.worldConceptId ? 'world-node' : ''} ${data.comparison ? `compare-${data.comparison}` : ''} ${arrived && effect?.receiving ? 'node-arrived' : ''} ${effect && !arrived ? 'node-processing' : ''} ${data.paused ? 'world-paused' : ''} ${data.departing ? 'world-departing' : ''} ${preview ? 'has-client-preview' : ''} ${data.visited ? 'node-visited' : ''} ${effect || idleQueue ? 'has-node-activity' : ''} ${(data.zoom || 1) > 1.05 ? 'node-near' : ''} ${data.unavailable ? 'node-unavailable' : ''} ${data.challengeSignal ? 'challenge-problem' : ''} ${data.challengeModified ? 'challenge-modified' : ''}`}
+      className={`architecture-node domain-${concept.domain} ${selected ? 'is-selected' : ''} ${active ? 'is-active' : ''} ${failed ? 'is-failed' : ''} ${dimmed ? 'is-dimmed' : ''} ${!showDetails ? 'is-compact' : ''} ${replicas ? 'has-replicas' : ''} ${data.worldConceptId ? 'world-node' : ''} ${data.comparison ? `compare-${data.comparison}` : ''} ${arrived && effect?.receiving ? 'node-arrived' : ''} ${effect && !arrived ? 'node-processing' : ''} ${data.paused ? 'world-paused' : ''} ${data.departing ? 'world-departing' : ''} ${preview ? 'has-client-preview' : ''} ${data.visited ? 'node-visited' : ''} ${effect || idleQueue ? 'has-node-activity' : ''} ${(data.zoom || 1) > 1.05 ? 'node-near' : ''} ${data.unavailable ? 'node-unavailable' : ''} ${data.challengeSignal ? 'challenge-problem' : ''} ${data.challengeModified ? 'challenge-modified' : ''} ${data.challengeActionable ? 'challenge-actionable' : ''} ${data.challengeInvestigate ? 'challenge-investigate' : ''} ${data.challengeSpotlight ? 'challenge-spotlight' : ''} ${data.challengeDimmed ? 'challenge-dimmed' : ''}`}
       data-testid={`concept-${concept.id}`}
       style={{ animationDelay: data.bootDelay !== undefined ? `${data.bootDelay}ms` : undefined }}
     >
@@ -103,6 +107,11 @@ export const ArchitectureNode = memo(function ArchitectureNode({
         {failed && <TriangleAlert size={13} className="failed-icon" />}
       </div>
       <div className="node-name">{concept.name}</div>
+      {data.challengeActionable && (
+        <span className="challenge-modify-affordance">
+          <Wrench size={10} /> Modify
+        </span>
+      )}
       {data.challengeSignal && (
         <div className="challenge-node-signal">
           {data.challengeSignal}

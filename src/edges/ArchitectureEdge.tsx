@@ -6,6 +6,7 @@ import { useWorld } from '../architectures/state';
 import { useUniverse } from '../state/universe';
 import { useExperience } from '../experience/preferences';
 import { concepts } from '../knowledge/catalog';
+import { useChallenge } from '../challenges/state';
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -26,6 +27,9 @@ export type FlowEdge = Edge<
     connected?: boolean;
     boot?: boolean;
     suppressed?: boolean;
+    challengeActionable?: boolean;
+    challengeInvestigate?: boolean;
+    challengeSpotlight?: boolean;
     playback?: {
       key: string;
       duration: number;
@@ -98,22 +102,43 @@ export const ArchitectureEdge = memo(function ArchitectureEdge(props: EdgeProps<
       : data?.active
         ? '#7654c2'
         : selected || hovered || data?.connected
-          ? '#7352b9'
+          ? '#6d4fb1'
           : data?.visited
-            ? '#aaa0b9'
+            ? '#9186a4'
             : structural
-              ? '#dedbe3'
+              ? '#c8c2d2'
               : kind === 'telemetry'
-                ? '#d8dde0'
+                ? '#8fadb4'
                 : dashed
-                  ? '#d5c7b4'
-                  : '#d1d4db';
+                  ? '#c5a574'
+                  : '#b8bdc8';
   return (
     <g
-      className={`architecture-edge ${data?.active ? 'edge-active' : ''} ${data?.visited ? 'edge-visited' : ''} ${hovered ? 'edge-hovered' : ''} ${data?.boot ? 'edge-boot' : ''}`}
-      style={{ opacity: data?.dimmed && !data.visited && !hovered && !data.connected ? 0.16 : 1 }}
+      tabIndex={data?.challengeActionable ? 0 : undefined}
+      role={data?.challengeActionable ? 'button' : undefined}
+      aria-label={
+        data?.challengeActionable ? `Modify flow: ${sourceName} to ${targetName}` : undefined
+      }
+      className={`architecture-edge ${data?.active ? 'edge-active' : ''} ${data?.visited ? 'edge-visited' : ''} ${hovered ? 'edge-hovered' : ''} ${data?.boot ? 'edge-boot' : ''} ${data?.challengeActionable ? 'challenge-actionable-edge' : ''} ${data?.challengeSpotlight ? 'challenge-spotlight-edge' : ''}`}
+      style={{
+        opacity:
+          data?.dimmed && !data.visited && !hovered && !data.connected
+            ? data.challengeInvestigate
+              ? 0.8
+              : 0.5
+            : 1,
+      }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
+      onKeyDown={(event) => {
+        if (data?.challengeActionable && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          event.stopPropagation();
+          useChallenge.getState().openTarget(id, 'edge');
+        }
+      }}
     >
       <BaseEdge
         id={id}
@@ -121,7 +146,8 @@ export const ArchitectureEdge = memo(function ArchitectureEdge(props: EdgeProps<
         interactionWidth={18}
         style={{
           stroke: color,
-          strokeWidth: data?.active || selected ? 2 : 1.25,
+          strokeWidth:
+            data?.active || selected || (hovered && data?.challengeActionable) ? 2 : 1.25,
           strokeDasharray: structural ? '2 5' : dashed ? '4 5' : undefined,
         }}
         markerStart={data?.reverse ? props.markerEnd : undefined}
@@ -181,7 +207,7 @@ export const ArchitectureEdge = memo(function ArchitectureEdge(props: EdgeProps<
           >
             {(hovered || selected) && !data?.active ? (
               <>
-                <b>{edgeType}</b>
+                <b>{data?.challengeActionable ? 'MODIFY FLOW' : edgeType}</b>
                 <span>
                   {sourceName} → {targetName}
                 </span>

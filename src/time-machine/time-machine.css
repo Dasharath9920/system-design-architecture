@@ -1,0 +1,491 @@
+.time-machine-panel {
+  position: absolute;
+  z-index: 20;
+  top: 108px;
+  left: calc(4.5vw + 18px);
+  width: 300px;
+  max-height: calc(100vh - 210px);
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid #d5cde1;
+  border-radius: 14px;
+  color: #34323b;
+  background: rgba(250, 249, 253, 0.97);
+  box-shadow: 0 14px 38px rgba(45, 35, 62, 0.13);
+}
+
+.time-machine-panel > header,
+.time-machine-scale-heading,
+.time-machine-scenario,
+.time-machine-status,
+.time-machine-problem,
+.time-machine-after > div,
+.time-machine-finish,
+.time-machine-actions button,
+.time-machine-next,
+.learn-why {
+  display: flex;
+  align-items: center;
+}
+
+.time-machine-panel > header {
+  justify-content: space-between;
+  margin-bottom: 10px;
+  color: #7152a8;
+}
+
+.time-machine-panel > header > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.time-machine-scenario {
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 9px;
+  color: #73717c;
+}
+
+.time-machine-scenario select {
+  max-width: 180px;
+  padding: 5px 7px;
+  border: 1px solid #ded8e6;
+  border-radius: 7px;
+  color: #443a52;
+  background: #f5f2f9;
+  font: inherit;
+}
+
+.time-machine-scale-heading {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.time-machine-scale-heading > div {
+  display: grid;
+  gap: 2px;
+}
+
+.time-machine-scale-heading strong {
+  color: #29272f;
+  font-size: 20px;
+  letter-spacing: -0.04em;
+}
+
+.time-machine-scale-heading small {
+  color: #74717d;
+  font-size: 9px;
+}
+
+.assumptions-trigger,
+.learn-why {
+  gap: 4px;
+  color: #71579b;
+  font-size: 8px;
+}
+
+.time-machine-assumptions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  color: #6c6974;
+  background: #f2eff6;
+  font-size: 7px;
+}
+
+.time-machine-estimate {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+  gap: 8px;
+  margin: 10px 0;
+  padding: 9px;
+  border: 1px solid #e0dce6;
+  border-radius: 9px;
+  background: #f6f5f9;
+}
+
+.time-machine-estimate span {
+  display: grid;
+  gap: 2px;
+}
+
+.time-machine-estimate small {
+  color: #898691;
+  font-size: 7px;
+  text-transform: uppercase;
+}
+
+.time-machine-estimate strong {
+  color: #37323f;
+  font-size: 10px;
+}
+
+.time-machine-estimate b {
+  color: #82798f;
+  font-size: 7px;
+  font-weight: 550;
+}
+
+.time-machine-status {
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid #dfe0e5;
+  border-radius: 9px;
+  background: #f7f7fa;
+}
+
+.time-machine-status > div {
+  display: grid;
+  gap: 2px;
+}
+
+.time-machine-status strong {
+  color: #3c3942;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.time-machine-status span {
+  color: #74717b;
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.time-machine-status.stable {
+  border-color: #c5d9cf;
+  color: #3f8164;
+  background: #f0f7f3;
+}
+
+.time-machine-status.ramping,
+.time-machine-status.evolving {
+  border-color: #d6cbe5;
+  color: #7352a9;
+  background: #f4f0f9;
+}
+
+.time-machine-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #d6c9e9;
+  border-top-color: #7654c2;
+  border-radius: 50%;
+  animation: time-machine-spin 0.8s linear infinite;
+}
+
+.time-machine-decision {
+  padding: 9px;
+  border: 1px solid #e2cbc8;
+  border-radius: 10px;
+  background: #fff8f7;
+}
+
+.time-machine-problem {
+  align-items: flex-start;
+  gap: 7px;
+  color: #a25b54;
+}
+
+.time-machine-problem span {
+  display: grid;
+  gap: 3px;
+}
+
+.time-machine-problem small {
+  font-size: 7px;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+}
+
+.time-machine-problem strong {
+  color: #5a3b3a;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.time-machine-decision > p {
+  margin: 8px 0 5px;
+  color: #6c5f62;
+  font-size: 8px;
+}
+
+.time-machine-feedback {
+  display: grid;
+  gap: 2px;
+  padding: 7px;
+  border-radius: 7px;
+  background: #f8eedf;
+}
+
+.time-machine-feedback b {
+  color: #9a6b2d;
+  font-size: 7px;
+  letter-spacing: 0.06em;
+}
+
+.time-machine-actions {
+  display: grid;
+  gap: 4px;
+}
+
+.time-machine-actions button {
+  justify-content: space-between;
+  min-height: 31px;
+  padding: 6px 8px;
+  border: 1px solid #e0d8e6;
+  border-radius: 7px;
+  color: #51425f;
+  background: #fff;
+  font-size: 8px;
+  text-align: left;
+}
+
+.time-machine-actions button:hover {
+  border-color: #9d86c2;
+  color: #4f337e;
+  background: #f2edf8;
+}
+
+.time-machine-after {
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid #d9d4e1;
+  border-radius: 9px;
+  background: #f7f6fa;
+}
+
+.time-machine-after > small {
+  display: block;
+  margin-bottom: 5px;
+  color: #81758e;
+  font-size: 6px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+}
+
+.time-machine-after > div {
+  display: grid;
+  grid-template-columns: 1fr auto 12px auto;
+  gap: 4px;
+  min-height: 20px;
+  color: #6c6974;
+  font-size: 7px;
+}
+
+.time-machine-after del {
+  color: #a06762;
+}
+
+.time-machine-after strong {
+  color: #3f8164;
+}
+
+.time-machine-after p {
+  margin: 6px 0 3px;
+  color: #62606a;
+  font-size: 7px;
+  line-height: 1.5;
+}
+
+.time-machine-after p b {
+  color: #59417f;
+  text-transform: uppercase;
+}
+
+.time-machine-after p em {
+  display: block;
+  color: #837582;
+  font-style: normal;
+}
+
+.time-machine-next {
+  width: 100%;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  margin-top: 8px;
+  border-radius: 8px;
+  color: #fff;
+  background: #7654c2;
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.time-machine-next:hover {
+  color: #fff;
+  background: #6745b0;
+}
+
+.time-machine-history {
+  position: absolute;
+  z-index: 19;
+  left: 50%;
+  bottom: 44px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: calc(100vw - 80px);
+  padding: 5px;
+  overflow-x: auto;
+  border: 1px solid #d9d4e1;
+  border-radius: 12px;
+  background: rgba(249, 248, 252, 0.97);
+  box-shadow: 0 10px 30px rgba(37, 30, 47, 0.12);
+  transform: translateX(-50%);
+}
+
+.time-machine-history button {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 42px;
+  padding: 4px 6px;
+  border-radius: 7px;
+  color: #85828d;
+  font-size: 7px;
+}
+
+.time-machine-history button i {
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border: 1px solid #ddd9e3;
+  border-radius: 50%;
+  font-size: 6px;
+  font-style: normal;
+}
+
+.time-machine-history button.complete i {
+  border-color: #a9c9b9;
+  color: #3f8063;
+  background: #edf7f1;
+}
+
+.time-machine-history button.current {
+  color: #543981;
+  background: #eee9f6;
+}
+
+.time-machine-history button.current i {
+  border-color: #8f75ba;
+  color: #fff;
+  background: #7654c2;
+}
+
+.time-machine-history button:disabled {
+  opacity: 0.38;
+}
+
+.time-machine-finish {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  color: #5f5968;
+  font-size: 8px;
+}
+
+.time-machine-finish > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.time-machine-finish > div:first-child span {
+  color: #85808b;
+  line-height: 1.35;
+}
+
+.time-machine-finish-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.time-machine-finish button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #5b4088;
+}
+
+.theme-dark .time-machine-panel,
+.theme-dark .time-machine-history {
+  border-color: #383242;
+  color: #d4d2db;
+  background: rgba(23, 24, 32, 0.98);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.35);
+}
+
+.theme-dark .time-machine-scale-heading strong,
+.theme-dark .time-machine-problem strong,
+.theme-dark .time-machine-after strong {
+  color: #e1dfe7;
+}
+
+.theme-dark .time-machine-estimate,
+.theme-dark .time-machine-after,
+.theme-dark .time-machine-actions button,
+.theme-dark .time-machine-scenario select {
+  border-color: #34313c;
+  color: #bbb8c3;
+  background: #121319;
+}
+
+.theme-dark .time-machine-status.stable {
+  border-color: #355a49;
+  background: #15231c;
+}
+
+.theme-dark .time-machine-decision {
+  border-color: #66413e;
+  background: #261b1d;
+}
+
+@keyframes time-machine-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 650px) {
+  .time-machine-panel {
+    top: 78px;
+    left: 16px;
+    width: min(286px, calc(100vw - 32px));
+    max-height: 57vh;
+  }
+
+  .time-machine-history {
+    bottom: 18px;
+    max-width: calc(100vw - 24px);
+  }
+}
+
+@media (min-width: 901px) {
+  .time-machine-mode .canvas-container,
+  .time-machine-mode.is-visualizing .canvas-container {
+    left: 370px;
+  }
+
+  .time-machine-mode .time-machine-history {
+    margin-left: 145px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .time-machine-spinner {
+    animation: none;
+    border-color: #7654c2;
+  }
+}

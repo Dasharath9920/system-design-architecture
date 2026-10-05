@@ -54,9 +54,18 @@ import { useFlowCamera } from './experience/useFlowCamera';
 import { legacyVisual } from './experience/legacy';
 import { ChallengeSelector } from './challenges/ChallengeSelector';
 import { ChallengePanel } from './challenges/ChallengePanel';
+import { ChallengeActionPopover } from './challenges/ChallengeActionPopover';
 import { challengeActions } from './challenges/actions';
 import { challenges } from './challenges/data';
 import { useChallenge } from './challenges/state';
+import { TimeMachinePanel } from './time-machine/TimeMachinePanel';
+import { getScaleScenario } from './time-machine/data';
+import {
+  architectureEdges as scaleArchitectureEdges,
+  architectureNodes as scaleArchitectureNodes,
+} from './time-machine/engine';
+import { useTimeMachine } from './time-machine/state';
+import './time-machine/time-machine.css';
 
 const ArchitectureExplorer = lazy(() =>
   import('./architectures/components/ArchitectureExplorer').then((m) => ({
@@ -77,7 +86,35 @@ export function App() {
   const world = useWorld();
   const experience = useExperience();
   const challengeState = useChallenge();
+  const timeMachine = useTimeMachine();
+  const timeMachineActive = timeMachine.active;
+  const scaleScenario = getScaleScenario(timeMachine.scenarioId);
+  const scaleStage = scaleScenario.stages[timeMachine.stageIndex];
+  const scaleArchitectureStage =
+    timeMachine.phase === 'applying' ||
+    timeMachine.phase === 'validating' ||
+    timeMachine.phase === 'stable'
+      ? timeMachine.stageIndex
+      : timeMachine.completedStage;
+  const scaleNodeIds = useMemo(
+    () => scaleArchitectureNodes(scaleScenario, scaleArchitectureStage),
+    [scaleScenario, scaleArchitectureStage],
+  );
+  const scaleEdges = useMemo(() => scaleArchitectureEdges(scaleNodeIds), [scaleNodeIds]);
   const activeChallenge = challenges.find((item) => item.id === challengeState.challengeId);
+  const challengeDiagnosing =
+    !!activeChallenge &&
+    ['diagnosing', 'modifying', 'partial', 'test_failed'].includes(challengeState.phase);
+  const challengeInteractive =
+    challengeDiagnosing || (!!activeChallenge && challengeState.phase === 'ready_to_test');
+  const challengeTargets = useMemo(
+    () =>
+      new Set(
+        activeChallenge?.interactionTargets.map((item) => `${item.targetType}:${item.targetId}`) ||
+          [],
+      ),
+    [activeChallenge],
+  );
   const {
     depthId,
     selectedId,
@@ -135,6 +172,7 @@ export function App() {
   const detailZoom = useStore((s) =>
     s.transform[2] > 1.05 ? 1.1 : s.transform[2] > 0.48 ? 1 : 0.4,
   );
+  const viewportTransform = useStore((s) => s.transform);
   const reduced = useReducedMotion();
   const presentation = useMemo(
     () => presentationAt(worldFrames, world.starting ? -1 : world.step, world.completed),
@@ -182,12 +220,14 @@ export function App() {
   const depth = depthId ? concepts[depthId] : null;
   const ids = useMemo(
     () =>
-      worldActive
-        ? worldArchitecture!.nodes.map((n) => n.id)
-        : depth
-          ? [depth.id, ...depth.children.filter((id) => concepts[id])]
-          : preset?.nodes || rootIds,
-    [depth, preset, worldActive, worldArchitecture],
+      timeMachineActive
+        ? scaleNodeIds
+        : worldActive
+          ? worldArchitecture!.nodes.map((n) => n.id)
+          : depth
+            ? [depth.id, ...depth.children.filter((id) => concepts[id])]
+            : preset?.nodes || rootIds,
+    [depth, preset, worldActive, worldArchitecture, timeMachineActive, scaleNodeIds],
   );
   const detailScenario = getDetailScenario(depthId);
   const scenarios = useMemo(
@@ -227,16 +267,51 @@ export function App() {
     experience.cameraMoving,
     reduced,
   ]);
-  const currentStep = useMemo(
-    () =>
-      worldActive
-        ? worldFrame && !world.starting
-          ? { nodes: worldFrame.nodes, edges: worldFrame.edgeIds }
-          : undefined
-        : scenario?.steps[step],
-    [worldActive, worldFrame, scenario, step, world.starting],
-  );
+  const currentStep = useMemo(() => {
+    if (timeMachineActive) {
+      const activeEdges =
+        timeMachine.phase === 'bottleneck' || timeMachine.phase === 'partial'
+          ? scaleEdges.filter(
+              (edge) =>
+                edge.target === scaleStage.bottleneck?.nodeId ||
+                edge.source === scaleStage.bottleneck?.nodeId,
+            )
+          : scaleEdges;
+      const activeNodes =
+        timeMachine.phase === 'bottleneck' || timeMachine.phase === 'partial'
+          ? [
+              ...new Set(
+                activeEdges
+                  .flatMap((edge) => [edge.source, edge.target])
+                  .concat(scaleStage.bottleneck?.nodeId || []),
+              ),
+            ]
+          : scaleNodeIds;
+      return ['ramping', 'bottleneck', 'partial', 'applying', 'validating'].includes(
+        timeMachine.phase,
+      )
+        ? { nodes: activeNodes, edges: activeEdges.map((edge) => edge.id) }
+        : undefined;
+    }
+    return worldActive
+      ? worldFrame && !world.starting
+        ? { nodes: worldFrame.nodes, edges: worldFrame.edgeIds }
+        : undefined
+      : scenario?.steps[step];
+  }, [
+    timeMachineActive,
+    timeMachine.phase,
+    scaleEdges,
+    scaleStage,
+    scaleNodeIds,
+    worldActive,
+    worldFrame,
+    scenario,
+    step,
+    world.starting,
+  ]);
   const allEdges = useMemo(() => {
+    if (timeMachineActive) return scaleEdges;
     if (worldActive) return architectureRelationships(worldArchitecture!);
     const visible = new Set(ids);
     const actual = relationships.filter((e) => visible.has(e.source) && visible.has(e.target));
@@ -254,25 +329,27 @@ export function App() {
       }
     }
     return actual;
-  }, [ids, depth, worldActive, worldArchitecture]);
+  }, [ids, depth, worldActive, worldArchitecture, timeMachineActive, scaleEdges]);
   const visibleEdges = useMemo(
     () =>
-      worldActive
-        ? allEdges.filter(
-            (e) =>
-              e.kind !== 'telemetry' ||
-              showTelemetry ||
-              world.lens === 'observability' ||
-              currentStep?.edges.includes(e.id),
-          )
-        : selectVisibleRelationships(allEdges, {
-            depth: !!depth,
-            preset: presetId,
-            selected: selectedId,
-            selectedRelationship: selectedEdge,
-            telemetry: showTelemetry,
-            active: currentStep?.edges || [],
-          }),
+      timeMachineActive
+        ? allEdges
+        : worldActive
+          ? allEdges.filter(
+              (e) =>
+                e.kind !== 'telemetry' ||
+                showTelemetry ||
+                world.lens === 'observability' ||
+                currentStep?.edges.includes(e.id),
+            )
+          : selectVisibleRelationships(allEdges, {
+              depth: !!depth,
+              preset: presetId,
+              selected: selectedId,
+              selectedRelationship: selectedEdge,
+              telemetry: showTelemetry,
+              active: currentStep?.edges || [],
+            }),
     [
       allEdges,
       depth,
@@ -283,10 +360,30 @@ export function App() {
       currentStep,
       worldActive,
       world.lens,
+      timeMachineActive,
     ],
   );
+  const challengeArea = useMemo(() => {
+    const symptoms = new Set(activeChallenge?.symptoms.map((item) => item.nodeId) || []);
+    const area = new Set(symptoms);
+    for (const edge of visibleEdges)
+      if (symptoms.has(edge.source) || symptoms.has(edge.target)) {
+        area.add(edge.source);
+        area.add(edge.target);
+      }
+    if (activeChallenge?.id === 'replica-lag') {
+      area.add('rw-gateway');
+      area.add('rw-replica');
+    }
+    return area;
+  }, [activeChallenge, visibleEdges]);
   const layout = useMemo(() => {
-    const base = layoutArchitecture(ids, allEdges, graphConcepts, depth ? 'detail' : 'overview');
+    const base = layoutArchitecture(
+      ids,
+      allEdges,
+      graphConcepts,
+      depth || timeMachineActive ? 'detail' : 'overview',
+    );
     return worldActive ? storyLayout(base, worldArchitecture!, step >= 0 || world.completed) : base;
   }, [
     ids,
@@ -297,6 +394,7 @@ export function App() {
     worldArchitecture,
     step >= 0,
     world.completed,
+    timeMachineActive,
   ]);
   const activeNodes = useMemo(() => new Set(currentStep?.nodes || []), [currentStep]);
   const connectedNodes = useMemo(() => {
@@ -321,12 +419,18 @@ export function App() {
           concept: graphConcepts[id],
           expanded: depthId === id,
           active: activeNodes.has(id),
-          failed: failedNodes.includes(id),
-          dimmed: worldActive
-            ? (step >= 0 && !(world.starting ? scenarioNodes : activeNodes).has(id)) ||
-              (world.lens === 'flow' && !scenarioNodes.has(id)) ||
-              !lensMatches(graphConcepts[id].domain, world.lens)
-            : focused && !connectedNodes.has(id),
+          failed:
+            failedNodes.includes(id) ||
+            (timeMachineActive &&
+              ['bottleneck', 'partial'].includes(timeMachine.phase) &&
+              scaleStage.bottleneck?.nodeId === id),
+          dimmed: timeMachineActive
+            ? ['bottleneck', 'partial'].includes(timeMachine.phase) && !activeNodes.has(id)
+            : worldActive
+              ? (step >= 0 && !(world.starting ? scenarioNodes : activeNodes).has(id)) ||
+                (world.lens === 'flow' && !scenarioNodes.has(id)) ||
+                !lensMatches(graphConcepts[id].domain, world.lens)
+              : focused && !connectedNodes.has(id),
           worldConceptId: worldActive
             ? worldArchitecture!.nodes.find((n) => n.id === id)?.conceptId
             : undefined,
@@ -356,13 +460,24 @@ export function App() {
             ((id === 'rw-service' && world.sandbox.failedServer) ||
               (id === 'rw-recipient' && world.debug === 'offline') ||
               (id === 'rw-events' && world.sandbox.consumersPaused)),
+          challengeActionable: challengeInteractive && challengeTargets.has(`node:${id}`),
+          challengeInvestigate: challengeInteractive && challengeArea.has(id),
+          challengeSpotlight:
+            (challengeState.spotlight === 'area' && challengeArea.has(id)) ||
+            (challengeState.spotlight === 'all' && challengeTargets.has(`node:${id}`)),
+          challengeDimmed: challengeDiagnosing && !challengeArea.has(id),
           challengeSignal:
-            challengeState.phase !== 'briefing' &&
-            activeChallenge?.symptoms.some((symptom) => symptom.nodeId === id)
-              ? challengeState.evaluation
-                ? `${challengeState.evaluation.metrics[0]?.label} ${challengeState.evaluation.metrics[0]?.value}`
-                : activeChallenge.symptoms.find((symptom) => symptom.nodeId === id)?.label
-              : undefined,
+            timeMachineActive &&
+            ['bottleneck', 'partial'].includes(timeMachine.phase) &&
+            scaleStage.bottleneck?.nodeId === id
+              ? scaleStage.bottleneck.signal
+              : ['diagnosing', 'modifying', 'ready_to_test', 'partial', 'test_failed'].includes(
+                    challengeState.phase,
+                  ) && activeChallenge?.symptoms.some((symptom) => symptom.nodeId === id)
+                ? challengeState.evaluation
+                  ? `${challengeState.evaluation.metrics[0]?.label} ${challengeState.evaluation.metrics[0]?.value}`
+                  : activeChallenge.symptoms.find((symptom) => symptom.nodeId === id)?.label
+                : undefined,
           challengeModified: activeChallenge
             ? challengeState.appliedActions
                 .map((actionId) => challengeActions[actionId])
@@ -372,16 +487,29 @@ export function App() {
           paused: experience.cameraMoving || (worldActive ? !world.running : !state.running),
           showDetails: detailZoom > 0.48,
           instances:
-            id === 'services' || (worldActive && id === 'rw-service')
-              ? level.serviceInstances + (worldActive ? world.sandbox.extraServers : 0)
-              : undefined,
+            timeMachineActive && id === 'services' && scaleArchitectureStage > 0
+              ? 3
+              : id === 'services' || (worldActive && id === 'rw-service')
+                ? level.serviceInstances + (worldActive ? world.sandbox.extraServers : 0)
+                : undefined,
           replicas:
-            id === 'database' || (worldActive && traffic > 1 && id === 'rw-database')
-              ? level.dbReplicas
-              : undefined,
+            timeMachineActive && id === 'database' && scaleNodeIds.includes('replication')
+              ? 2
+              : id === 'database' || (worldActive && traffic > 1 && id === 'rw-database')
+                ? level.dbReplicas
+                : undefined,
           backlog: traffic > 1 && id === 'kafka' ? level.queueDepth : undefined,
-          metric:
-            traffic > 1
+          metric: timeMachineActive
+            ? scaleStage.bottleneck?.nodeId === id && timeMachine.phase === 'stable'
+              ? scaleStage.metrics[0]?.after
+              : scaleStage.addedNodes.includes(id)
+                ? `Introduced at ${scaleStage.label} users`
+                : scaleArchitectureStage === 0 && id === 'services'
+                  ? 'CPU 18% · healthy'
+                  : scaleArchitectureStage === 0 && id === 'database'
+                    ? 'CPU 11% · healthy'
+                    : undefined
+            : traffic > 1
               ? id === 'services'
                 ? `${level.serviceInstances} instances · autoscaled`
                 : id === 'database'
@@ -413,6 +541,12 @@ export function App() {
       experience.cameraMoving,
       activeChallenge,
       challengeState.appliedActions,
+      challengeState.phase,
+      challengeState.spotlight,
+      challengeInteractive,
+      challengeDiagnosing,
+      challengeTargets,
+      challengeArea,
       worldFrame,
       scenarioNodes,
       step,
@@ -425,13 +559,20 @@ export function App() {
       legacyStories,
       state.running,
       experience.cameraMoving,
+      timeMachineActive,
+      timeMachine.phase,
+      scaleStage,
+      scaleArchitectureStage,
+      scaleNodeIds,
     ],
   );
   const displayedNodes = useMorphNodes(
     nodes,
-    worldActive
-      ? `${worldArchitecture!.familyId}/${worldArchitecture!.id}`
-      : `universe:${presetId}:${depthId || 'root'}`,
+    timeMachineActive
+      ? `time-machine:${scaleScenario.id}:${scaleArchitectureStage}`
+      : worldActive
+        ? `${worldArchitecture!.familyId}/${worldArchitecture!.id}/${challengeState.appliedActions.join(',')}`
+        : `universe:${presetId}:${depthId || 'root'}`,
     reduced,
   );
   const edges: FlowEdge[] = useMemo(
@@ -463,7 +604,7 @@ export function App() {
               : 'in',
           type: 'architecture',
           selected: selectedEdge === r.id,
-          zIndex: active ? 3 : 0,
+          zIndex: challengeInteractive && challengeTargets.has(`edge:${r.id}`) ? 5 : active ? 3 : 0,
           markerEnd: {
             type: MarkerType.ArrowClosed,
             width: 11,
@@ -474,7 +615,7 @@ export function App() {
                 : '#7654c2'
               : experience.theme === 'dark'
                 ? '#4b4e59'
-                : '#c8cbd2',
+                : '#aeb4bf',
           },
           data: {
             visited: worldActive && presentation.visitedEdges.has(r.id),
@@ -490,41 +631,63 @@ export function App() {
                   }
                 : r,
             active,
+            challengeActionable: challengeInteractive && challengeTargets.has(`edge:${r.id}`),
+            challengeInvestigate:
+              challengeInteractive && challengeArea.has(r.source) && challengeArea.has(r.target),
+            challengeSpotlight:
+              (challengeState.spotlight === 'area' &&
+                challengeArea.has(r.source) &&
+                challengeArea.has(r.target)) ||
+              (challengeState.spotlight === 'all' && challengeTargets.has(`edge:${r.id}`)),
             reverse: !worldActive && sourceIndex > targetIndex && targetIndex >= 0,
-            dimmed: worldActive
-              ? (step >= 0 && !active) ||
-                (!lensMatches(graphConcepts[r.source].domain, world.lens) &&
-                  !lensMatches(graphConcepts[r.target].domain, world.lens))
-              : focused && r.source !== selectedId && r.target !== selectedId,
+            dimmed: challengeDiagnosing
+              ? !(challengeArea.has(r.source) && challengeArea.has(r.target))
+              : worldActive
+                ? (step >= 0 && !active) ||
+                  (!lensMatches(graphConcepts[r.source].domain, world.lens) &&
+                    !lensMatches(graphConcepts[r.target].domain, world.lens))
+                : focused && r.source !== selectedId && r.target !== selectedId,
             playback:
-              worldActive && active && worldFrame
+              timeMachineActive &&
+              active &&
+              (timeMachine.phase === 'ramping' || timeMachine.phase === 'validating')
                 ? {
-                    key: `${world.epoch}-${worldFrame.id}`,
-                    duration:
-                      worldFrame.steps.find((s) => s.from === r.source && s.to === r.target)
-                        ?.duration || worldFrame.duration,
-                    elapsed: world.elapsed,
-                    speed: world.speed,
-                    running: world.running && !experience.cameraMoving,
-                    startedAt: world.startedAt,
-                    visual: worldFrame.steps.find((s) => s.from === r.source && s.to === r.target)
-                      ?.visual,
-                    kind:
-                      worldFrame.steps.find((s) => s.from === r.source && s.to === r.target)
-                        ?.edgeType || 'request',
+                    key: `scale-${timeMachine.epoch}-${timeMachine.phase}-${r.id}`,
+                    duration: timeMachine.phase === 'ramping' ? 1200 : 900,
+                    elapsed: 0,
+                    startedAt: timeMachine.startedAt,
+                    speed: 1,
+                    running: true,
+                    kind: 'request' as const,
                   }
-                : !worldActive && active && scenario?.steps[step]
+                : worldActive && active && worldFrame
                   ? {
-                      key: `legacy-${state.runEpoch}-${step}`,
-                      duration: Math.max(2400, scenario.steps[step].duration || 0),
-                      elapsed: state.elapsed,
-                      startedAt: state.startedAt,
-                      speed: 1,
-                      running: state.running && !experience.cameraMoving,
-                      kind: 'request' as const,
-                      visual: legacyVisual(scenario.steps[step], r),
+                      key: `${world.epoch}-${worldFrame.id}`,
+                      duration:
+                        worldFrame.steps.find((s) => s.from === r.source && s.to === r.target)
+                          ?.duration || worldFrame.duration,
+                      elapsed: world.elapsed,
+                      speed: world.speed,
+                      running: world.running && !experience.cameraMoving,
+                      startedAt: world.startedAt,
+                      visual: worldFrame.steps.find((s) => s.from === r.source && s.to === r.target)
+                        ?.visual,
+                      kind:
+                        worldFrame.steps.find((s) => s.from === r.source && s.to === r.target)
+                          ?.edgeType || 'request',
                     }
-                  : undefined,
+                  : !worldActive && active && scenario?.steps[step]
+                    ? {
+                        key: `legacy-${state.runEpoch}-${step}`,
+                        duration: Math.max(2400, scenario.steps[step].duration || 0),
+                        elapsed: state.elapsed,
+                        startedAt: state.startedAt,
+                        speed: 1,
+                        running: state.running && !experience.cameraMoving,
+                        kind: 'request' as const,
+                        visual: legacyVisual(scenario.steps[step], r),
+                      }
+                    : undefined,
             showLabel:
               r.kind === 'contains' ||
               (selectedId !== null && (r.source === selectedId || r.target === selectedId)),
@@ -534,6 +697,11 @@ export function App() {
       }),
     [
       visibleEdges,
+      challengeInteractive,
+      challengeDiagnosing,
+      challengeTargets,
+      challengeArea,
+      challengeState.spotlight,
       layout,
       currentStep,
       selectedEdge,
@@ -547,6 +715,10 @@ export function App() {
       world.speed,
       world.running,
       experience.cameraMoving,
+      timeMachineActive,
+      timeMachine.phase,
+      timeMachine.epoch,
+      timeMachine.startedAt,
       world.lens,
       step,
       graphConcepts,
@@ -564,21 +736,29 @@ export function App() {
     ],
   );
   const flowCamera = useFlowCamera(graphRef, {
-    architecture: worldActive
-      ? `${worldArchitecture!.familyId}/${worldArchitecture!.id}`
-      : `${presetId}/${depthId || 'root'}`,
-    context: worldActive
-      ? `${worldArchitecture!.familyId}/${worldArchitecture!.id}/${world.scenarioId}/${world.debug}`
-      : `${presetId}/${depthId || 'root'}/${scenario.id}`,
-    step,
-    running: worldActive ? world.running : state.running,
+    architecture: timeMachineActive
+      ? `time-machine/${scaleScenario.id}`
+      : worldActive
+        ? `${worldArchitecture!.familyId}/${worldArchitecture!.id}`
+        : `${presetId}/${depthId || 'root'}`,
+    context: timeMachineActive
+      ? `time-machine/${scaleScenario.id}/${timeMachine.stageIndex}/${timeMachine.phase}`
+      : worldActive
+        ? `${worldArchitecture!.familyId}/${worldArchitecture!.id}/${world.scenarioId}/${world.debug}`
+        : `${presetId}/${depthId || 'root'}/${scenario.id}`,
+    step: timeMachineActive ? -1 : step,
+    running: timeMachineActive ? false : worldActive ? world.running : state.running,
     completed: worldActive ? world.completed : state.completed,
-    nodeIds: worldActive ? worldFrame?.nodes || [] : currentStep?.nodes || [],
+    nodeIds: timeMachineActive
+      ? currentStep?.nodes || []
+      : worldActive
+        ? worldFrame?.nodes || []
+        : currentStep?.nodes || [],
     positions: layout.positions,
     world: worldActive,
     deep: !!depth,
     reduced,
-    instant: worldActive && world.speed === 0,
+    instant: timeMachineActive || (worldActive && world.speed === 0),
   });
   const fit = useCallback(() => {
     lastDepthChange.current = Date.now();
@@ -598,7 +778,49 @@ export function App() {
     lastDepthChange.current = Date.now();
     const timer = setTimeout(frameArchitecture, 80);
     return () => clearTimeout(timer);
-  }, [depthId, presetId, frameArchitecture]);
+  }, [
+    depthId,
+    presetId,
+    frameArchitecture,
+    timeMachineActive,
+    timeMachine.scenarioId,
+    scaleArchitectureStage,
+  ]);
+
+  useEffect(() => {
+    if (
+      !timeMachineActive ||
+      !['bottleneck', 'partial'].includes(timeMachine.phase) ||
+      !scaleStage.bottleneck
+    )
+      return;
+    const focusIds = currentStep?.nodes || [scaleStage.bottleneck.nodeId];
+    const timer = window.setTimeout(
+      () =>
+        void flow.fitView({
+          nodes: focusIds.map((id) => ({ id })),
+          padding: 0.75,
+          minZoom: 0.55,
+          maxZoom: 1.05,
+          duration: reduced ? 0 : 650,
+        }),
+      80,
+    );
+    return () => window.clearTimeout(timer);
+  }, [timeMachineActive, timeMachine.phase, scaleStage, currentStep, flow, reduced]);
+  useEffect(() => {
+    if (!activeChallenge || challengeState.phase !== 'diagnosing') return;
+    const timer = window.setTimeout(() => {
+      void flow.fitView({
+        nodes: [...challengeArea].map((id) => ({ id })),
+        padding: window.innerWidth <= 650 ? 0.6 : 0.75,
+        minZoom: 0.35,
+        maxZoom: 1.05,
+        duration: reduced ? 0 : 550,
+      });
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [activeChallenge, challengeState.phase, challengeArea, flow, reduced]);
   useEffect(() => {
     if (!focused || !selectedId || flowCamera.ownsViewport()) return;
     void flow.fitView({
@@ -727,14 +949,42 @@ export function App() {
       explore(selectedId);
     }
   };
+  const challengePopoverPosition = (() => {
+    const target = challengeState.selectedTarget;
+    const bounds = graphRef.current?.getBoundingClientRect();
+    if (!target || !bounds) return null;
+    const edge = target.type === 'edge' ? allEdges.find((item) => item.id === target.id) : null;
+    const a = layout.positions[edge?.source || target.id];
+    const b = edge ? layout.positions[edge.target] : null;
+    if (!a) return null;
+    const x = b ? (a.x + b.x + NODE_WIDTH) / 2 : a.x + NODE_WIDTH;
+    const y = b ? (a.y + b.y + NODE_HEIGHT) / 2 : a.y + NODE_HEIGHT / 2;
+    return {
+      left: Math.max(
+        12,
+        Math.min(
+          window.innerWidth - 286,
+          bounds.left + viewportTransform[0] + x * viewportTransform[2] + 12,
+        ),
+      ),
+      top: Math.max(
+        72,
+        Math.min(
+          window.innerHeight - 342,
+          bounds.top + viewportTransform[1] + y * viewportTransform[2] - 42,
+        ),
+      ),
+    };
+  })();
   const ancestors = depthId ? [...getAncestors(depthId), depthId] : [];
   return (
     <main
-      className={`universe-app theme-${experience.theme} ${selectedId || selectedEdge ? 'has-inspector' : ''} ${step >= 0 ? 'is-visualizing' : ''} ${worldArchitecture ? 'world-mode' : ''} ${worldFrame?.parallel ? 'world-parallel' : ''} ${experience.cinema ? 'cinema-mode' : ''} ${experience.explain ? '' : 'explain-off'} ${reduced || (worldActive && world.speed === 0) ? 'motion-reduced' : ''} ${experience.motion === 'off' ? 'motion-off' : ''} ${world.completed ? 'flow-completed' : ''} ${activeChallenge ? 'challenge-mode' : ''} family-${worldArchitecture?.familyId || 'universe'}`}
+      className={`universe-app theme-${experience.theme} ${timeMachineActive ? 'time-machine-mode' : ''} ${selectedId || selectedEdge ? 'has-inspector' : ''} ${step >= 0 || timeMachineActive ? 'is-visualizing' : ''} ${worldArchitecture ? 'world-mode' : ''} ${worldFrame?.parallel ? 'world-parallel' : ''} ${experience.cinema ? 'cinema-mode' : ''} ${experience.explain ? '' : 'explain-off'} ${reduced || (worldActive && world.speed === 0) ? 'motion-reduced' : ''} ${experience.motion === 'off' ? 'motion-off' : ''} ${world.completed ? 'flow-completed' : ''} ${activeChallenge ? 'challenge-mode' : ''} family-${worldArchitecture?.familyId || 'universe'}`}
     >
       <Header />
       <ChallengeSelector />
       <ChallengePanel />
+      {timeMachineActive && <TimeMachinePanel />}
       <ExitCinema />
       {worldArchitecture ? (
         <WorldContext />
@@ -795,6 +1045,10 @@ export function App() {
             flowCamera.interrupt();
             if (worldActive) world.pause();
             else set({ running: false });
+            if (challengeInteractive && challengeTargets.has(`node:${node.id}`)) {
+              challengeState.openTarget(node.id, 'node');
+              return;
+            }
             select(node.id);
           }}
           onNodeMouseEnter={(_, node) => experience.set({ hovered: node.id })}
@@ -809,11 +1063,18 @@ export function App() {
                   ? explore(node.id)
                   : set({ selectedId: node.id, focused: true })
           }
-          onPaneClick={() => set({ selectedId: null, selectedEdge: null, focused: false })}
+          onPaneClick={() => {
+            if (challengeState.selectedTarget) challengeState.closeTarget();
+            set({ selectedId: null, selectedEdge: null, focused: false });
+          }}
           onEdgeClick={(_, edge) => {
             flowCamera.interrupt();
             if (worldActive) world.pause();
             else set({ running: false });
+            if (challengeInteractive && challengeTargets.has(`edge:${edge.id}`)) {
+              challengeState.openTarget(edge.id, 'edge');
+              return;
+            }
             const relationship = allEdges.find((r) => r.id === edge.id);
             if (relationship?.kind === 'contains') select(relationship.target);
             else state.inspectEdge(edge.id);
@@ -835,6 +1096,13 @@ export function App() {
           />
         </ReactFlow>
       </div>
+      {activeChallenge && challengePopoverPosition && (
+        <ChallengeActionPopover
+          key={challengeState.selectedTarget?.id}
+          challenge={activeChallenge}
+          {...challengePopoverPosition}
+        />
+      )}
       <div className="canvas-tools">
         <button
           className="icon-button"
@@ -923,7 +1191,14 @@ export function App() {
         {world.explorerOpen && <ArchitectureExplorer />}
         {state.searchOpen && <SearchPalette />}
       </Suspense>
-      {worldActive ? <WorldPlayer /> : <SimulationControls />}
+      {!timeMachineActive &&
+        (worldActive ? (
+          (!activeChallenge || ['observing', 'testing'].includes(challengeState.phase)) && (
+            <WorldPlayer />
+          )
+        ) : (
+          <SimulationControls />
+        ))}
       {worldActive && (experience.trace || world.lens === 'observability') && (
         <TracePanel frames={worldFrames} />
       )}

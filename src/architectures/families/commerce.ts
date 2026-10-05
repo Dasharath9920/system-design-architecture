@@ -307,6 +307,19 @@ export default {
         ),
       ],
     ),
+    flow(
+      'app-overload-challenge',
+      'High traffic through one app instance',
+      'Requests queue at one saturated application instance.',
+      'Distribute requests across healthy stateless instances behind one endpoint.',
+      [
+        s('client', 'gateway', 'Request product details', 'A shopper begins a normal request.', 'The public endpoint should remain stable.', 'Failed requests.'),
+        s('gateway', 'service', 'Forward to one app instance', 'The one application instance is saturated by concurrent requests.', 'This is the active capacity boundary.', 'Long request queues.'),
+        s('service', 'catalog', 'Read product record', 'The app requests current product details.', 'The catalog is healthy in this workload.', 'Stale product data.', 'read'),
+        s('catalog', 'service', 'Return product record', 'The catalog responds promptly.', 'The application tier is the bottleneck, not storage.', 'Misdiagnosis.', 'ack'),
+        s('service', 'client', 'Slow response', 'The saturated instance finishes after a long queueing delay.', 'One instance cannot sustain peak traffic.', 'High P95 latency.', 'ack'),
+      ],
+    ),
   ],
   variants: [
     {
