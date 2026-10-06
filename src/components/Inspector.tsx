@@ -17,6 +17,7 @@ import { useUniverse } from '../state/universe';
 import { Icon } from './Icon';
 import { revealConcept } from '../utils/revealConcept';
 import { ConceptDemo } from '../experience/ConceptDemo';
+import { XRayAction } from '../xray/XRayAction';
 
 export function Inspector() {
   const { selectedId, selectedEdge, focused, failedNodes, explore, toggleFailure, set } =
@@ -109,6 +110,7 @@ export function Inspector() {
         </div>
       </div>
       <p className="inspector-description">{concept.description}</p>
+      <XRayAction conceptId={concept.id} sourceId={concept.id} label={concept.name} />
       <div className="inspector-tabs">
         <button className={tab === 'overview' ? 'active' : ''} onClick={() => setTab('overview')}>
           Overview

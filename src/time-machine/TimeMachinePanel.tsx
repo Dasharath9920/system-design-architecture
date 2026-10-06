@@ -17,9 +17,12 @@ import { getScaleScenario, scaleScenarios } from './data';
 import { compactNumber, estimateWorkload } from './engine';
 import { useTimeMachine } from './state';
 import type { ScaleAction } from './types';
+import { XRayAction } from '../xray/XRayAction';
+import { useXRay } from '../xray/state';
 
 export function TimeMachinePanel() {
   const state = useTimeMachine();
+  const xrayActive = useXRay((s) => !!s.request);
   const reduced = useReducedMotion();
   const [assumptionsOpen, setAssumptionsOpen] = useState(false);
   const scenario = getScaleScenario(state.scenarioId);
@@ -30,10 +33,12 @@ export function TimeMachinePanel() {
   );
 
   useEffect(() => {
-    if (state.phase !== 'ramping') return;
-    const from = scenario.stages[Math.max(0, state.completedStage)].users;
+    if (state.phase !== 'ramping' || xrayActive) return;
+    const baseline = scenario.stages[Math.max(0, state.completedStage)].users;
+    const from = useTimeMachine.getState().rampUsers;
     const to = stage.users;
-    const duration = reduced ? 350 : 2100;
+    const remaining = Math.max(0, Math.min(1, (to - from) / Math.max(1, to - baseline)));
+    const duration = Math.max(1, (reduced ? 350 : 2100) * remaining);
     const startedAt = performance.now();
     let frame = 0;
     const tick = (now: number) => {
@@ -51,10 +56,18 @@ export function TimeMachinePanel() {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [state.phase, state.stageIndex, state.completedStage, scenario, stage.users, reduced]);
+  }, [
+    state.phase,
+    state.stageIndex,
+    state.completedStage,
+    scenario,
+    stage.users,
+    reduced,
+    xrayActive,
+  ]);
 
   useEffect(() => {
-    if (state.phase !== 'applying') return;
+    if (state.phase !== 'applying' || xrayActive) return;
     const timer = window.setTimeout(
       () =>
         state.set({
@@ -66,10 +79,10 @@ export function TimeMachinePanel() {
       reduced ? 180 : 900,
     );
     return () => window.clearTimeout(timer);
-  }, [state.phase, state.epoch, reduced]);
+  }, [state.phase, state.epoch, reduced, xrayActive]);
 
   useEffect(() => {
-    if (state.phase !== 'validating') return;
+    if (state.phase !== 'validating' || xrayActive) return;
     const timer = window.setTimeout(
       () =>
         state.set({
@@ -81,7 +94,7 @@ export function TimeMachinePanel() {
       reduced ? 350 : 1700,
     );
     return () => window.clearTimeout(timer);
-  }, [state.phase, state.completedStage, state.stageIndex, reduced]);
+  }, [state.phase, state.completedStage, state.stageIndex, reduced, xrayActive]);
 
   const selectStage = (index: number) => {
     if (state.phase === 'ramping' || state.phase === 'applying' || state.phase === 'validating')
@@ -148,6 +161,18 @@ export function TimeMachinePanel() {
             <X size={14} />
           </button>
         </header>
+        {state.phase === 'stable' &&
+          stage.addedNodes.map((id) => (
+            <XRayAction
+              key={id}
+              conceptId={id}
+              sourceId={id}
+              label={concepts[id]?.name}
+              layer={/replica/.test(id) ? 'replication' : undefined}
+            >
+              Why was {concepts[id]?.name || id} added?
+            </XRayAction>
+          ))}
 
         <label className="time-machine-scenario">
           <span>Scale system</span>

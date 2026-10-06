@@ -1,0 +1,487 @@
+.xray-entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 13px;
+  border: 1px solid #c9bee3;
+  border-radius: 9px;
+  color: #63409e;
+  background: #ece6f7;
+  font-size: 12px;
+  font-weight: 600;
+  margin: 10px 0;
+}
+.xray-mode > :not(.xray-shell):not(.search-backdrop) {
+  pointer-events: none;
+}
+.xray-mode > .canvas-container {
+  opacity: 0.5;
+  filter: saturate(0.6);
+}
+.xray-mode > .inspector,
+.xray-mode > .challenge-panel,
+.xray-mode > .challenge-guidance,
+.xray-mode > .challenge-action-popover,
+.xray-mode > .time-machine-panel,
+.xray-mode > .time-machine-history,
+.xray-mode > .canvas-tools,
+.xray-mode > .world-player,
+.xray-mode > .simulation-controls,
+.xray-mode > .world-context,
+.xray-mode > .canvas-heading {
+  visibility: hidden;
+}
+.xray-shell {
+  --xr-surface: #f4f6fc;
+  --xr-card: #e8edf8;
+  --xr-text: #26364e;
+  --xr-muted: #5d6b83;
+  --xr-line: #c8d2e5;
+  position: absolute;
+  z-index: 65;
+  inset: 82px 32px 25px;
+  border: 1px solid var(--xr-line);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(244, 246, 252, 0.78), rgba(237, 243, 249, 0.82));
+  box-shadow: 0 20px 70px #2634511a;
+  color: var(--xr-text);
+  overflow: hidden;
+  animation: xray-reveal 0.4s ease both;
+}
+.xray-shell .react-flow {
+  background: transparent;
+}
+.xray-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 52px;
+  padding: 0 22px;
+  border-bottom: 1px solid var(--xr-line);
+}
+.xray-header nav,
+.xray-header nav span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.xray-header nav {
+  overflow-x: auto;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--xr-muted);
+}
+.xray-header button[aria-current='page'] {
+  color: #7751ac;
+  font-weight: 650;
+}
+.xray-exit {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--xr-text);
+}
+.xray-layer-heading {
+  position: absolute;
+  left: 28px;
+  top: 74px;
+  right: 310px;
+  pointer-events: none;
+}
+.xray-layer-heading > span,
+.xray-inspector-label {
+  color: #7b5ba8;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  font-weight: 650;
+}
+.xray-layer-heading h2 {
+  font-size: 25px;
+  letter-spacing: -0.6px;
+  margin: 8px 0;
+  color: var(--xr-text);
+}
+.xray-layer-heading p {
+  font-size: 12px;
+  color: var(--xr-muted);
+  margin: 0;
+}
+.xray-graph {
+  position: absolute;
+  top: 175px;
+  bottom: 160px;
+  left: 20px;
+  right: 306px;
+  border: 1px solid var(--xr-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--xr-surface), transparent 20%);
+  overflow: hidden;
+}
+.xray-node {
+  width: 225px;
+  min-height: 114px;
+  border: 1px solid #afbfdb;
+  border-radius: 12px;
+  background: linear-gradient(130deg, var(--xr-card), var(--xr-surface));
+  color: var(--xr-text);
+  padding: 15px;
+  box-shadow: 0 4px 12px #233d6410;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.xray-node-type {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--xr-muted);
+  margin-bottom: 10px;
+}
+.xray-node strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 650;
+}
+.xray-node small {
+  display: block;
+  margin-top: 7px;
+  line-height: 1.45;
+  font-size: 11px;
+  color: var(--xr-muted);
+}
+.xray-node code {
+  display: block;
+  font-size: 10px;
+  background: #d6e9e8;
+  color: #21605c;
+  border-radius: 5px;
+  padding: 6px;
+  margin-top: 10px;
+  overflow-wrap: anywhere;
+}
+.xray-node.active {
+  border-color: #7c59bc;
+  box-shadow: 0 0 0 3px #9871c926;
+}
+.xray-node.selected {
+  border-color: #7c59bc;
+}
+.xray-node-far strong {
+  font-size: 22px;
+}
+.xray-node-far small,
+.xray-node-far code {
+  display: none;
+}
+.xray-node:focus-visible {
+  outline: 3px solid #9871c9;
+  outline-offset: 4px;
+}
+.xray-layer-heading h2:focus {
+  outline: none;
+}
+.xray-node.failed {
+  border-color: #c1786e;
+  background: #f4e5e2;
+}
+.xray-node .react-flow__handle {
+  opacity: 0;
+}
+.xray-graph-tools {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  display: flex;
+  gap: 10px;
+  z-index: 5;
+}
+.xray-graph-tools button,
+.xray-graph-tools select {
+  color: var(--xr-muted);
+  background: var(--xr-surface);
+  border: 1px solid var(--xr-line);
+  border-radius: 7px;
+  padding: 6px;
+  font-size: 10px;
+}
+.xray-legend {
+  position: absolute;
+  bottom: 10px;
+  left: 14px;
+  display: flex;
+  gap: 14px;
+  color: var(--xr-muted);
+  font-size: 9px;
+  pointer-events: none;
+}
+.xray-inspector {
+  position: absolute;
+  top: 78px;
+  right: 20px;
+  bottom: 24px;
+  width: 264px;
+  overflow-y: auto;
+  padding: 18px;
+  background: var(--xr-card);
+  border: 1px solid var(--xr-line);
+  border-radius: 12px;
+  scrollbar-width: thin;
+}
+.xray-inspector h3 {
+  font-size: 18px;
+  margin: 10px 0 15px;
+  color: var(--xr-text);
+}
+.xray-inspector dt {
+  font-size: 9px;
+  letter-spacing: 1px;
+  font-weight: 650;
+  color: #7b5ba8;
+  margin-top: 16px;
+}
+.xray-inspector dd,
+.xray-inspector p {
+  font-size: 11px;
+  line-height: 1.65;
+  color: var(--xr-muted);
+  margin: 5px 0 0;
+}
+.xray-inspector details {
+  border-top: 1px solid var(--xr-line);
+  padding-top: 12px;
+  margin-top: 15px;
+}
+.xray-inspector summary {
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+.xray-inspector a {
+  display: block;
+  font-size: 10px;
+  color: #73539b;
+  padding-top: 10px;
+}
+.xray-inspector > button {
+  width: 100%;
+}
+.xray-inspector small {
+  display: block;
+  color: var(--xr-muted);
+  line-height: 1.6;
+  font-size: 9px;
+  margin-top: 12px;
+}
+.xray-related {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 10px;
+}
+.xray-related button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+  padding: 7px 0;
+  font-size: 11px;
+  color: var(--xr-muted);
+}
+.xray-primary {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+  border-radius: 8px;
+  background: #7552b4;
+  color: #fff;
+  padding: 9px 13px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.xray-primary:hover {
+  background: #66439f;
+  color: #fff;
+}
+.xray-demo {
+  position: absolute;
+  left: 20px;
+  right: 306px;
+  bottom: 18px;
+  background: var(--xr-surface);
+  border: 1px solid var(--xr-line);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+.xray-demo-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.xray-demo-controls select {
+  flex: 1;
+  min-width: 0;
+  color: var(--xr-text);
+  background: var(--xr-card);
+  border: 1px solid var(--xr-line);
+  border-radius: 7px;
+  padding: 7px;
+  font-size: 11px;
+}
+.xray-demo-controls > button:not(.xray-primary) {
+  color: var(--xr-muted);
+  padding: 5px;
+}
+.xray-demo button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.xray-demo-caption {
+  margin-top: 10px;
+  min-height: 51px;
+}
+.xray-demo-caption > span {
+  font-size: 8px;
+  letter-spacing: 1px;
+  margin-right: 10px;
+  color: #7b5ba8;
+}
+.xray-demo-caption strong {
+  font-size: 11px;
+}
+.xray-demo-caption p {
+  margin: 5px 0 0;
+  line-height: 1.5;
+  font-size: 11px;
+  color: var(--xr-muted);
+}
+.xray-loading {
+  padding: 60px;
+  text-align: center;
+  color: var(--xr-muted);
+}
+.theme-dark .xray-shell {
+  --xr-surface: #1b2030;
+  --xr-card: #252c40;
+  --xr-text: #e0e5f0;
+  --xr-muted: #abb8cf;
+  --xr-line: #3d4964;
+  background: linear-gradient(135deg, #1b2030f7, #202739f5);
+}
+.theme-dark .xray-node {
+  border-color: #4d5d7e;
+}
+.theme-dark .xray-node.failed {
+  background: #463037;
+  border-color: #b6716c;
+}
+.theme-dark .xray-node code {
+  background: #274746;
+  color: #b0d9d1;
+}
+.theme-dark .xray-entry {
+  background: #3a2e51;
+  color: #d2bfee;
+  border-color: #62507d;
+}
+.theme-dark .xray-inspector dt,
+.theme-dark .xray-inspector a,
+.theme-dark .xray-inspector-label,
+.theme-dark .xray-layer-heading > span,
+.theme-dark .xray-header button[aria-current='page'] {
+  color: #bfa4e3;
+}
+@keyframes xray-reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (max-width: 900px) {
+  .xray-shell {
+    inset: 74px 12px 12px;
+  }
+  .xray-inspector {
+    width: 220px;
+    right: 12px;
+  }
+  .xray-graph,
+  .xray-demo {
+    right: 245px;
+    left: 12px;
+  }
+  .xray-layer-heading {
+    right: 245px;
+    left: 20px;
+  }
+}
+@media (max-width: 650px) {
+  .xray-shell {
+    overflow-y: auto;
+  }
+  .xray-header {
+    padding: 0 12px;
+  }
+  .xray-exit {
+    font-size: 0;
+  }
+  .xray-header nav {
+    max-width: 85%;
+  }
+  .xray-layer-heading {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    padding: 18px;
+  }
+  .xray-layer-heading h2 {
+    font-size: 21px;
+  }
+  .xray-graph {
+    position: relative;
+    inset: auto;
+    margin: 0 10px;
+    height: 340px;
+  }
+  .xray-inspector {
+    position: relative;
+    inset: auto;
+    width: auto;
+    max-height: 280px;
+    margin: 12px 10px;
+  }
+  .xray-demo {
+    position: relative;
+    inset: auto;
+    margin: 12px 10px;
+  }
+  .xray-demo-controls {
+    gap: 4px;
+  }
+  .xray-legend {
+    gap: 7px;
+    font-size: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .xray-shell {
+    animation: none;
+  }
+  .xray-node {
+    transition: none;
+  }
+  .xray-shell .react-flow__edge-path {
+    animation: none !important;
+  }
+}

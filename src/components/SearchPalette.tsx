@@ -7,6 +7,8 @@ import { Icon } from './Icon';
 import { revealConcept } from '../utils/revealConcept';
 import { searchArchitectures } from '../architectures/search';
 import { useWorld } from '../architectures/state';
+import { matchXRay, searchXRay } from '../xray/registry';
+import { useXRay } from '../xray/state';
 export function SearchPalette() {
   const open = useUniverse((s) => s.searchOpen);
   const set = useUniverse((s) => s.set);
@@ -15,6 +17,8 @@ export function SearchPalette() {
   const [index, setIndex] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   const architectureResults = useMemo(() => searchArchitectures(query), [query]);
+  const xrayResults = useMemo(() => searchXRay(query), [query]);
+  const conceptOffset = xrayResults.length + architectureResults.length;
   const results = useMemo(
     () =>
       query.trim()
@@ -44,12 +48,33 @@ export function SearchPalette() {
     }
   }, [open]);
   const choose = (id: string) => {
+    useXRay.getState().close();
     if (useWorld.getState().architecture) useWorld.getState().leave();
     revealConcept(id);
   };
   const chooseArchitecture = (i: number) => {
+    useXRay.getState().close();
     const result = architectureResults[i];
     if (result) void useWorld.getState().activate(result.family, result.company, result.scenario);
+  };
+  const chooseXRay = (i: number) => {
+    const result = xrayResults[i];
+    if (!result) return;
+    const architecture = useWorld.getState().architecture;
+    const source = architecture?.nodes.find(
+      (n) => matchXRay(n.technology || n.conceptId, n.label) === result.id,
+    );
+    const genericId =
+      result.id === 'postgres' ? 'database' : result.id === 'redis' ? 'cache' : result.id;
+    set({ searchOpen: false });
+    useXRay
+      .getState()
+      .open(
+        result.id,
+        result.layer,
+        source?.id || (!architecture ? genericId : undefined),
+        source?.label || result.context,
+      );
   };
   if (!open) return null;
   return (
@@ -68,19 +93,19 @@ export function SearchPalette() {
           if (e.key === 'Escape') set({ searchOpen: false });
           if (e.key === 'ArrowDown') {
             e.preventDefault();
-            setIndex((i) => Math.min(i + 1, results.length + architectureResults.length - 1));
+            setIndex((i) => Math.min(i + 1, results.length + conceptOffset - 1));
           }
           if (e.key === 'ArrowUp') {
             e.preventDefault();
             setIndex((i) => Math.max(0, i - 1));
           }
           if (e.key === 'Enter') {
-            if (index < architectureResults.length) chooseArchitecture(index);
+            if (index < xrayResults.length) chooseXRay(index);
+            else if (index < conceptOffset) chooseArchitecture(index - xrayResults.length);
             else if (preset) {
               setPreset(preset.id);
               set({ searchOpen: false });
-            } else if (results[index - architectureResults.length])
-              choose(results[index - architectureResults.length].id);
+            } else if (results[index - conceptOffset]) choose(results[index - conceptOffset].id);
           }
           if (e.key === 'Tab') {
             e.preventDefault();
@@ -131,11 +156,28 @@ export function SearchPalette() {
               <CornerDownLeft size={15} />
             </button>
           )}
+          {xrayResults.map((result, i) => (
+            <button
+              key={`xray-${result.id}-${result.layer}`}
+              className={`search-result ${index === i ? 'active' : ''}`}
+              onMouseEnter={() => setIndex(i)}
+              onClick={() => chooseXRay(i)}
+            >
+              <span className="search-result-icon">
+                <Search size={18} />
+              </span>
+              <span>
+                <strong>X-Ray · {result.name}</strong>
+                <small>{result.context} · open internals</small>
+              </span>
+              <CornerDownLeft size={15} />
+            </button>
+          ))}
           {architectureResults.map((result, i) => (
             <button
               key={`${result.family}-${result.company}`}
-              className={`search-result preset-result ${index === i ? 'active' : ''}`}
-              onMouseEnter={() => setIndex(i)}
+              className={`search-result preset-result ${index === i + xrayResults.length ? 'active' : ''}`}
+              onMouseEnter={() => setIndex(i + xrayResults.length)}
               onClick={() => chooseArchitecture(i)}
             >
               <span className="search-result-icon">
@@ -151,8 +193,8 @@ export function SearchPalette() {
           {results.map((c, i) => (
             <button
               key={c.id}
-              className={`search-result domain-${c.domain} ${i + architectureResults.length === index ? 'active' : ''}`}
-              onMouseEnter={() => setIndex(i + architectureResults.length)}
+              className={`search-result domain-${c.domain} ${i + conceptOffset === index ? 'active' : ''}`}
+              onMouseEnter={() => setIndex(i + conceptOffset)}
               onClick={() => choose(c.id)}
             >
               <span className="search-result-icon">
@@ -167,10 +209,10 @@ export function SearchPalette() {
                 </small>
               </span>
               <span className="search-kind">{c.kind}</span>
-              {i + architectureResults.length === index && <CornerDownLeft size={13} />}
+              {i + conceptOffset === index && <CornerDownLeft size={13} />}
             </button>
           ))}
-          {!results.length && !preset && !architectureResults.length && (
+          {!results.length && !preset && !architectureResults.length && !xrayResults.length && (
             <div className="search-empty">
               <Search size={28} />
               <strong>No matching concepts yet</strong>

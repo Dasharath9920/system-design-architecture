@@ -66,6 +66,10 @@ import {
 } from './time-machine/engine';
 import { useTimeMachine } from './time-machine/state';
 import './time-machine/time-machine.css';
+import { useXRay } from './xray/state';
+import './xray/xray.css';
+
+const XRayCanvas = lazy(() => import('./xray/XRayCanvas').then((m) => ({ default: m.XRayCanvas })));
 
 const ArchitectureExplorer = lazy(() =>
   import('./architectures/components/ArchitectureExplorer').then((m) => ({
@@ -82,6 +86,7 @@ const SearchPalette = lazy(() =>
   import('./components/SearchPalette').then((module) => ({ default: module.SearchPalette })),
 );
 export function App() {
+  const xrayActive = useXRay((s) => !!s.request);
   const state = useUniverse();
   const world = useWorld();
   const experience = useExperience();
@@ -771,6 +776,7 @@ export function App() {
     });
   }, [flow, reduced, ids]);
   const frameArchitecture = useCallback(() => {
+    if (useXRay.getState().request) return;
     if (flowCamera.ownsViewport()) return;
     void fit();
   }, [fit, flowCamera.ownsViewport]);
@@ -811,6 +817,7 @@ export function App() {
   useEffect(() => {
     if (!activeChallenge || challengeState.phase !== 'diagnosing') return;
     const timer = window.setTimeout(() => {
+      if (useXRay.getState().request) return;
       void flow.fitView({
         nodes: [...challengeArea].map((id) => ({ id })),
         padding: window.innerWidth <= 650 ? 0.6 : 0.75,
@@ -835,6 +842,7 @@ export function App() {
     const position = layout.positions[selectedId];
     if (!position) return;
     const timer = setTimeout(() => {
+      if (useXRay.getState().request) return;
       const width = graphRef.current?.clientWidth || window.innerWidth;
       const height = graphRef.current?.clientHeight || 500;
       const zoom = Math.max(flow.getZoom(), 0.95);
@@ -870,6 +878,7 @@ export function App() {
         return;
       }
       if (typing) return;
+      if (useXRay.getState().request) return;
       if (event.key === 'Escape') {
         if (useExperience.getState().cinema) {
           useExperience.getState().set({ cinema: false });
@@ -979,7 +988,7 @@ export function App() {
   const ancestors = depthId ? [...getAncestors(depthId), depthId] : [];
   return (
     <main
-      className={`universe-app theme-${experience.theme} ${timeMachineActive ? 'time-machine-mode' : ''} ${selectedId || selectedEdge ? 'has-inspector' : ''} ${step >= 0 || timeMachineActive ? 'is-visualizing' : ''} ${worldArchitecture ? 'world-mode' : ''} ${worldFrame?.parallel ? 'world-parallel' : ''} ${experience.cinema ? 'cinema-mode' : ''} ${experience.explain ? '' : 'explain-off'} ${reduced || (worldActive && world.speed === 0) ? 'motion-reduced' : ''} ${experience.motion === 'off' ? 'motion-off' : ''} ${world.completed ? 'flow-completed' : ''} ${activeChallenge ? 'challenge-mode' : ''} family-${worldArchitecture?.familyId || 'universe'}`}
+      className={`universe-app theme-${experience.theme} ${xrayActive ? 'xray-mode' : ''} ${timeMachineActive ? 'time-machine-mode' : ''} ${selectedId || selectedEdge ? 'has-inspector' : ''} ${step >= 0 || timeMachineActive ? 'is-visualizing' : ''} ${worldArchitecture ? 'world-mode' : ''} ${worldFrame?.parallel ? 'world-parallel' : ''} ${experience.cinema ? 'cinema-mode' : ''} ${experience.explain ? '' : 'explain-off'} ${reduced || (worldActive && world.speed === 0) ? 'motion-reduced' : ''} ${experience.motion === 'off' ? 'motion-off' : ''} ${world.completed ? 'flow-completed' : ''} ${activeChallenge ? 'challenge-mode' : ''} family-${worldArchitecture?.familyId || 'universe'}`}
     >
       <Header />
       <ChallengeSelector />
@@ -1191,6 +1200,17 @@ export function App() {
         {world.explorerOpen && <ArchitectureExplorer />}
         {state.searchOpen && <SearchPalette />}
       </Suspense>
+      {xrayActive && (
+        <Suspense
+          fallback={
+            <div className="loading-context" role="status">
+              Opening X-Ray…
+            </div>
+          }
+        >
+          <XRayCanvas />
+        </Suspense>
+      )}
       {!timeMachineActive &&
         (worldActive ? (
           (!activeChallenge || ['observing', 'testing'].includes(challengeState.phase)) && (

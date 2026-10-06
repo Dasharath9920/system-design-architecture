@@ -14,9 +14,12 @@ import { useWorld } from '../architectures/state';
 import { challengeActions } from './actions';
 import { challenges } from './data';
 import { useChallenge } from './state';
+import { XRayAction } from '../xray/XRayAction';
+import { useXRay } from '../xray/state';
 
 export function ChallengePanel() {
   const state = useChallenge();
+  const xrayActive = useXRay((s) => !!s.request);
   const world = useWorld();
   const [moreOpen, setMoreOpen] = useState(false);
   const challenge = challenges.find((item) => item.id === state.challengeId);
@@ -24,10 +27,10 @@ export function ChallengePanel() {
     if (world.completed) state.completeRun();
   }, [world.completed, state.phase]);
   useEffect(() => {
-    if (!state.spotlight) return;
+    if (!state.spotlight || xrayActive) return;
     const timer = window.setTimeout(state.clearSpotlight, 1500);
     return () => window.clearTimeout(timer);
-  }, [state.spotlight, state.phase]);
+  }, [state.spotlight, state.phase, xrayActive]);
   if (!challenge) return null;
   const busy = state.phase === 'observing' || state.phase === 'testing';
   const diagnosing = ['diagnosing', 'modifying', 'test_failed', 'partial'].includes(state.phase);
@@ -72,6 +75,28 @@ export function ChallengePanel() {
             <strong>Where would you change the design?</strong>
           </p>
         )}
+        {diagnosing &&
+          (() => {
+            const component = world.architecture?.nodes.find(
+              (n) => n.id === challenge.symptoms[0]?.nodeId,
+            );
+            const stale = /stale|replica|disappeared/i.test(
+              `${challenge.title} ${challenge.observed}`,
+            );
+            const lag = /consumer|backlog|lag/i.test(`${challenge.title} ${challenge.observed}`);
+            return (
+              component && (
+                <XRayAction
+                  conceptId={stale ? 'postgres' : component.conceptId}
+                  sourceId={component.id}
+                  label={component.label}
+                  layer={stale ? 'replication' : lag ? 'consumers' : undefined}
+                >
+                  Understand this component
+                </XRayAction>
+              )
+            );
+          })()}
         {state.phase === 'diagnosing' && (
           <button className="challenge-main-button" onClick={state.showTargets}>
             Inspect the highlighted path <ArrowRight size={12} />

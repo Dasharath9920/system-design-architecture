@@ -6,6 +6,7 @@ import { Icon } from '../../components/Icon';
 import { SandboxActions } from '../../experience/SandboxActions';
 import { ConceptDemo } from '../../experience/ConceptDemo';
 import { useChallenge } from '../../challenges/state';
+import { XRayAction } from '../../xray/XRayAction';
 const symbols = { verified: '✓', inferred: '~', conceptual: '◇' };
 export function WorldInspector() {
   const w = useWorld();
@@ -57,6 +58,13 @@ export function WorldInspector() {
         </div>
       )}
       <p className="inspector-description">{item.description}</p>
+      {node && (
+        <XRayAction
+          conceptId={node.technology || node.conceptId}
+          sourceId={node.id}
+          label={node.label}
+        />
+      )}
       <div className="inspector-scroll">
         {edge && w.packetInspection?.edge === edge.id && (
           <section className="inspector-section packet-inspection">
